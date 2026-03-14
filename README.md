@@ -1006,18 +1006,22 @@ All data is stored in the browser's localStorage. This is a client-side only app
 
 ### Admin Accounts (Hardcoded in AuthContext)
 
-| Username | Password | Role | Name |
-|----------|----------|------|------|
-| `Majed` | `PureLegend!1122!0405!` | owner | Majed |
-| `owner` | `Owner2024!` | owner | Platform Owner |
-| `superadmin` | `SuperAdmin2024!` | superadmin | Super Administrator |
-| `admin` | `GlobalEquity2024!` | admin | Administrator |
+| Username | Role | Name |
+|----------|------|------|
+| `Majed` | owner | Majed |
+| `owner` | owner | Platform Owner |
+| `superadmin` | superadmin | Super Administrator |
+| `admin` | admin | Administrator |
+
+> ⚠️ **Security Note**: Default passwords are set in `AuthContext.tsx`. Change these immediately in production!
 
 ### Pre-seeded User Account
 
-| Email | Password | Client Number |
-|-------|----------|---------------|
-| `majed1.alshoghri@gmail.com` | `PureLegend!1122!0405!` | GEE-24-ALSH001 |
+| Email | Client Number |
+|-------|---------------|
+| `majed1.alshoghri@gmail.com` | GEE-24-ALSH001 |
+
+> ⚠️ **Security Note**: Demo user password is set in `AuthContext.tsx`. Change or disable in production!
 
 ### Seed Listings (10 Businesses)
 
