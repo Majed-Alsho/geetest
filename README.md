@@ -1,141 +1,146 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# Global Equity Exchange
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+A modern equity marketplace platform for buying, selling, and trading equity stakes in various assets. Built with Next.js 16, React 19, and TypeScript.
 
-## ✨ Technology Stack
+## Features
 
-This scaffold provides a robust foundation built with:
+### Core Marketplace
+- **Listings Management** - Create, edit, and manage equity listings with images, descriptions, and pricing
+- **Categories** - Organize listings by category (Real Estate, Startups, Art, Vehicles, etc.)
+- **Search & Filter** - Advanced search with category and price filtering
+- **Watchlist** - Save and track favorite listings
 
-### 🎯 Core Framework
-- **⚡ Next.js 16** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+### Advertising System
+- **Ad Creation** - Create banner and sidebar advertisements
+- **Ad Management** - Track impressions, clicks, and manage ad status
+- **Admin Approval** - Admin panel for approving/rejecting ads
 
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+### User System
+- **Authentication** - Secure login with username/email and password
+- **Role-Based Access Control** - Three-tier role system (User < Admin < SuperAdmin < Owner)
+- **User Profiles** - Manage profile information and settings
+- **Verification System** - Document verification with status tracking
 
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
+### Admin Dashboard
+- **User Management** - View, edit, and manage user accounts
+- **Listing Moderation** - Approve or reject listings
+- **Ad Management** - Review and approve advertisements
+- **Support Tickets** - Handle user support requests
+- **Analytics** - Platform statistics and metrics
+- **Income Tracking** - Daily, weekly, monthly, and yearly income reports
 
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Fetch** - Promise-based HTTP request
+### Security & Compliance
+- **GDPR Compliance** - Data export and account deletion features
+- **Activity Logging** - Track user actions and security events
+- **Session Management** - Monitor and manage active sessions
+- **Security Settings** - Two-factor authentication options
 
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
+### Notifications
+- **Real-time Notifications** - In-app notification system
+- **Notification Categories** - Listings, Ads, Support, System, Security
+- **Mark as Read/Unread** - Manage notification status
 
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
+## Tech Stack
 
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
+- **Framework**: Next.js 16 with App Router (Turbopack)
+- **Frontend**: React 19, TypeScript 5
+- **Styling**: Tailwind CSS 4
+- **UI Components**: shadcn/ui + Radix UI
+- **Icons**: Lucide React
+- **State Management**: React Context API
+- **Data Persistence**: localStorage (client-side)
 
-## 🎯 Why This Scaffold?
-
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
-
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/Majed-Alsho/geetest.git
+
+# Navigate to project
+cd geetest
+
 # Install dependencies
-bun install
+npm install
 
 # Start development server
-bun run dev
-
-# Build for production
-bun run build
-
-# Start production server
-bun start
+npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-## 🤖 Powered by Z.ai
+## Test Accounts
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+| Role | Username/Email | Password |
+|------|---------------|----------|
+| Owner | `Majed` | `PureLegend!1122!0405!` |
+| User | `majed1.alshoghri@gmail.com` | `PureLegend!1122!0405!` |
 
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
-
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Authentication pages (login, register)
+│   ├── (main)/            # Main application pages
+│   └── api/               # API routes
+├── components/            # Reusable React components
+│   ├── layout/           # Layout components (Navbar, Footer)
+│   └── ui/               # shadcn/ui components
+├── contexts/             # React Context providers
+│   ├── AuthContext.tsx   # Authentication state
+│   ├── ListingsContext.tsx # Listings management
+│   ├── AdContext.tsx     # Advertisements
+│   ├── NotificationsContext.tsx # Notifications
+│   ├── EarningsContext.tsx # Income tracking
+│   └── VerificationContext.tsx # Document verification
+├── hooks/                # Custom React hooks
+└── lib/                  # Utility functions
 ```
 
-## 🎨 Available Features & Components
+## Role Permissions
 
-This scaffold includes a comprehensive set of modern web development tools:
+### User
+- Browse listings and categories
+- Create and manage own listings
+- Create and manage watchlist
+- Submit support tickets
+- Manage own profile
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+### Admin
+- All User permissions
+- Approve/reject listings
+- Approve/reject ads
+- Handle support tickets
+- View platform analytics
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
+### SuperAdmin
+- All Admin permissions
+- Manage users (edit, deactivate)
+- Access all admin features
+- Manage categories
 
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
+### Owner
+- All SuperAdmin permissions
+- Full platform control
+- Manage all roles
+- System configuration
 
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Fetch + TanStack Query
-- **State Management**: Simple and scalable with Zustand
+## Scripts
 
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
+```bash
+# Development
+npm run dev
 
-## 🤝 Get Started with Z.ai
+# Production build
+npm run build
 
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+# Start production server
+npm start
 
----
+# Lint code
+npm run lint
+```
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+## License
+
+MIT License - feel free to use this project for personal or commercial purposes.
