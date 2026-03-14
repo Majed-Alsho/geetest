@@ -1,0 +1,14 @@
+cd C:\Users\offic\EAA
+.\.venv-hf\Scripts\Activate.ps1
+python eaa_control_v6_complete.py
+
+run the app:
+
+cd C:\Users\offic\EAA
+npm run tauri dev
+
+
+openclaw gateway
+
+
+https://chat.z.ai/c/6d454c38-cf16-476d-9f59-d9c6e141d2de
