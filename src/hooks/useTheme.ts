@@ -5,26 +5,29 @@ import { useState, useCallback, useEffect } from 'react';
 type Theme = 'light' | 'dark';
 
 export function useTheme() {
-  // Initialize state with the stored theme (lazy initializer runs once)
-  const [theme, setThemeState] = useState<Theme>(() => {
-    // Default to light for SSR
-    if (typeof window === 'undefined') return 'light';
-    
+  // Always start with 'light' for SSR to avoid hydration mismatch
+  const [theme, setThemeState] = useState<Theme>('light');
+  const [mounted, setMounted] = useState(false);
+
+  // After mount, read the actual theme from localStorage
+  useEffect(() => {
+    setMounted(true);
     try {
       const stored = localStorage.getItem('gee-theme') as Theme | null;
-      if (stored) return stored;
-      
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
+      if (stored) {
+        setThemeState(stored);
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        setThemeState('dark');
       }
     } catch {
       // Ignore errors
     }
-    return 'light';
-  });
+  }, []);
 
   // Apply theme to document whenever it changes
   useEffect(() => {
+    if (!mounted) return;
+    
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
@@ -34,7 +37,7 @@ export function useTheme() {
     } catch {
       // Ignore errors
     }
-  }, [theme]);
+  }, [theme, mounted]);
 
   const toggleTheme = useCallback(() => {
     setThemeState(prev => prev === 'light' ? 'dark' : 'light');
@@ -44,5 +47,5 @@ export function useTheme() {
     setThemeState(newTheme);
   }, []);
 
-  return { theme, setTheme, toggleTheme };
+  return { theme, setTheme, toggleTheme, mounted };
 }

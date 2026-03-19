@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef, MutableRefObject } from 'react';
 import { 
   Advertisement, 
   AdDuration, 
@@ -96,6 +96,11 @@ export function AdProvider({ children }: { children: ReactNode }) {
   const [isLoading] = useState(false);
   const { addNotification } = useNotifications();
   const notifiedAdsRef = useRef<Set<string>>(new Set());
+  // Store addNotification in a ref to avoid useEffect dependency issues
+  const addNotificationRef = useRef(addNotification);
+  useEffect(() => {
+    addNotificationRef.current = addNotification;
+  }, [addNotification]);
 
   // Get active ads
   const activeAds = ads.filter(ad => ad.status === 'active');
@@ -130,7 +135,7 @@ export function AdProvider({ children }: { children: ReactNode }) {
             
             if (hoursRemaining > 0 && hoursRemaining <= NEAR_EXPIRY_HOURS && !newNotifiedAds.has(`near-expiry-${ad.id}`)) {
               newNotifiedAds.add(`near-expiry-${ad.id}`);
-              addNotification({
+              addNotificationRef.current({
                 type: 'system',
                 title: 'Promotion Expiring Soon',
                 message: `Your promotion for "${ad.listingTitle}" will expire in ${Math.ceil(hoursRemaining)} hours. Extend now to maintain visibility.`,
@@ -159,7 +164,7 @@ export function AdProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(checkExpiration, 60000);
 
     return () => clearInterval(interval);
-  }, [addNotification]);
+  }, []); // Empty deps - using ref for addNotification
 
   const createAd = useCallback(async (data: {
     listingId: string;

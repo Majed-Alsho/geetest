@@ -57,7 +57,7 @@ export function AuthGate({ children, message = "Access confidential details" }: 
 
           <p className="text-sm text-muted-foreground mt-6">
             Your information is protected by our{' '}
-            <Link to="privacy" className="text-accent hover:underline">
+            <Link href="/privacy" className="text-accent hover:underline">
               Privacy Policy
             </Link>
           </p>

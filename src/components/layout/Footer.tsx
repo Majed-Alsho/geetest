@@ -1,15 +1,10 @@
 'use client';
 
 import { Building2, ShieldCheck, Lock, FileText } from 'lucide-react';
-import { useNavigation } from '@/contexts/NavigationContext';
+import Link from 'next/link';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
-  const { navigateTo } = useNavigation();
-
-  const handleNavigate = (view: 'home' | 'marketplace' | 'investors' | 'how-it-works' | 'security' | 'terms' | 'privacy' | 'risk-disclosure' | 'admin-login') => {
-    navigateTo(view);
-  };
 
   return (
     <footer className="border-t border-border bg-card/50">
@@ -17,12 +12,12 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <button onClick={() => handleNavigate('home')} className="flex items-center gap-2 mb-4">
+            <Link href="/" className="flex items-center gap-2 mb-4">
               <Building2 className="w-6 h-6 text-accent" />
               <span className="font-semibold text-lg">
                 Global Equity Exchange
               </span>
-            </button>
+            </Link>
             <p className="text-muted-foreground text-sm max-w-md mb-6">
               Confidential deal flow for discerning investors. We connect qualified buyers with vetted business opportunities worldwide.
             </p>
@@ -43,24 +38,24 @@ export function Footer() {
             <h4 className="font-semibold mb-4 text-sm">Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <button onClick={() => handleNavigate('marketplace')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/marketplace" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Marketplace
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNavigate('investors')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/investors" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Investment Portal
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNavigate('how-it-works')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   How It Works
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNavigate('security')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Security
-                </button>
+                </Link>
               </li>
             </ul>
           </div>
@@ -70,24 +65,24 @@ export function Footer() {
             <h4 className="font-semibold mb-4 text-sm">Legal</h4>
             <ul className="space-y-2">
               <li>
-                <button onClick={() => handleNavigate('terms')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Terms of Service
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNavigate('privacy')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Privacy Policy
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNavigate('risk-disclosure')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/risk-disclosure" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Risk Disclosure
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNavigate('admin-login')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/admin-login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Team Access
-                </button>
+                </Link>
               </li>
             </ul>
           </div>

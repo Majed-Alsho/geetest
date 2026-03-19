@@ -18,12 +18,12 @@ import {
   Crown,
   Zap
 } from 'lucide-react';
+import Link from 'next/link';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Listing, formatCurrency, getListingAge } from '@/lib/data';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompare } from '@/contexts/CompareContext';
-import { useNavigation } from '@/contexts/NavigationContext';
 import { useAds } from '@/contexts/AdContext';
 import { AdTier } from '@/types/advertising';
 import { cn } from '@/lib/utils';
@@ -60,7 +60,6 @@ export function ListingCard({
 }: ListingCardProps) {
   const { isAuthenticated, user } = useAuth();
   const { addToCompare, removeFromCompare, isInCompare, canAddMore } = useCompare();
-  const { navigateTo, setSelectedListingId } = useNavigation();
   const { incrementClick, getActiveAdsForListing } = useAds();
 
   const inCompare = isInCompare(listing.id);
@@ -94,15 +93,6 @@ export function ListingCard({
     if (isPromoted && adId) {
       incrementClick(adId);
     }
-    setSelectedListingId(listing.id);
-    navigateTo('listing-detail');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleClick();
-    }
   };
 
   // Check if this listing already has an active ad
@@ -117,12 +107,10 @@ export function ListingCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.08, ease: 'easeOut' }}
     >
-      <div 
+      <Link 
+        href={`/listings/${listing.id}`}
         onClick={handleClick}
-        onKeyDown={handleKeyDown}
-        role="button"
-        tabIndex={0}
-        className="w-full text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-2xl"
+        className="block"
       >
         <GlassPanel hover className={cn(
           "h-full p-6 group relative overflow-hidden",
@@ -296,7 +284,7 @@ export function ListingCard({
             </div>
           )}
         </GlassPanel>
-      </div>
+      </Link>
     </motion.div>
   );
 }

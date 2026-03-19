@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import { createContext, useContext, ReactNode, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 type ViewType = 
   | 'home' 
@@ -23,7 +24,34 @@ type ViewType =
   | 'profile'
   | 'reset-password' 
   | 'support' 
-  | 'data-deletion';
+  | 'data-deletion'
+  | 'compare-listings';
+
+// Map view types to actual routes
+const viewToRoute: Record<string, string> = {
+  'home': '/',
+  'marketplace': '/marketplace',
+  'listing-detail': '/listings',  // Will need ID appended
+  'compare': '/compare',
+  'create-listing': '/create-listing',
+  'investors': '/investors',
+  'investor-profile': '/investors',  // Will need ID appended
+  'knowledge-base': '/knowledge-base',
+  'how-it-works': '/how-it-works',
+  'security': '/security',
+  'terms': '/terms',
+  'privacy': '/privacy',
+  'risk-disclosure': '/risk-disclosure',
+  'login': '/login',
+  'signup': '/signup',
+  'admin-login': '/admin-login',
+  'admin': '/admin',
+  'profile': '/profile',
+  'reset-password': '/reset-password',
+  'support': '/support',
+  'data-deletion': '/data-deletion',
+  'compare-listings': '/compare',
+};
 
 interface NavigationContextType {
   currentView: ViewType;
@@ -34,56 +62,33 @@ interface NavigationContextType {
 
 const NavigationContext = createContext<NavigationContextType | null>(null);
 
-const NAV_KEY = 'gee_current_view';
-
-// Helper to validate view type
-const VALID_VIEWS: Set<string> = new Set([
-  'home', 'marketplace', 'listing-detail', 'compare', 'create-listing',
-  'investors', 'investor-profile', 'knowledge-base', 'how-it-works', 'security', 'terms', 'privacy',
-  'risk-disclosure', 'login', 'signup', 'admin-login', 'admin',
-  'profile', 'reset-password', 'support', 'data-deletion'
-]);
-
-function isValidView(view: string): boolean {
-  return VALID_VIEWS.has(view);
-}
-
-// Lazy initializer function - runs only once on mount
-function getInitialView(): ViewType {
-  if (typeof window === 'undefined') return 'home';
-  try {
-    const stored = localStorage.getItem(NAV_KEY);
-    if (stored && isValidView(stored)) {
-      return stored as ViewType;
-    }
-  } catch {
-    // Ignore errors
-  }
-  return 'home';
-}
-
 export function NavigationProvider({ children }: { children: ReactNode }) {
-  // Use lazy initialization - the function is only called once on mount
-  const [currentView, setCurrentView] = useState<ViewType>(getInitialView);
-  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
-
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  // Derive current view from pathname
+  const getCurrentView = (): ViewType => {
+    if (pathname === '/') return 'home';
+    const path = pathname.split('/')[1];
+    return (path as ViewType) || 'home';
+  };
+  
+  // Simple state for selected listing
+  let selectedListingId: string | null = null;
+  
   const navigateTo = useCallback((view: ViewType) => {
-    setCurrentView(view);
-    try {
-      localStorage.setItem(NAV_KEY, view);
-    } catch {
-      // Ignore errors
-    }
-    // Scroll to top on navigation
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    const route = viewToRoute[view] || '/';
+    router.push(route);
+  }, [router]);
+  
+  const setSelectedListingId = useCallback((id: string | null) => {
+    selectedListingId = id;
   }, []);
-
+  
   return (
     <NavigationContext.Provider 
       value={{ 
-        currentView, 
+        currentView: getCurrentView(), 
         navigateTo, 
         selectedListingId, 
         setSelectedListingId 
@@ -96,8 +101,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
 export function useNavigation() {
   const context = useContext(NavigationContext);
-  // During SSR/static generation, return a default context instead of throwing
   if (!context) {
+    // Return a default context for SSR/SSG
     return {
       currentView: 'home' as ViewType,
       navigateTo: () => {},

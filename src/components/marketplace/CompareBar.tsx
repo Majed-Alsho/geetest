@@ -2,17 +2,17 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Scale, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCompare } from '@/contexts/CompareContext';
-import { useNavigation } from '@/contexts/NavigationContext';
 import { cn } from '@/lib/utils';
 
 export function CompareBar() {
   const { compareListings, removeFromCompare, clearCompare, maxCompare } = useCompare();
-  const { navigateTo } = useNavigation();
+  const router = useRouter();
 
   const handleCompare = () => {
     if (compareListings.length >= 2) {
-      navigateTo('compare');
+      router.push('/compare');
     }
   };
 

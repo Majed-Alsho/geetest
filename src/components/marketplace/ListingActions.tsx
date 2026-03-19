@@ -1,5 +1,7 @@
+'use client';
+
 import { useState } from 'react';
-import { 
+import {
   Share2, 
   Flag, 
   Bookmark, 

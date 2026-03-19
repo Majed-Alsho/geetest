@@ -155,7 +155,7 @@ export function AuditProvider({ children }: { children: ReactNode }) {
       if (filter.actions && filter.actions.length > 0 && !filter.actions.includes(log.action)) return false;
       
       // Actors
-      if (filter.actors && filter.actors.length > 0 && !filter.actors.includes(log.actor.id)) return false;
+      if (filter.actors && filter.actors.length > 0 && !filter.actors.includes(log.actor?.id || '')) return false;
       
       // Targets
       if (filter.targets && filter.targets.length > 0 && (!log.target || !filter.targets.includes(log.target.id))) return false;
@@ -166,7 +166,7 @@ export function AuditProvider({ children }: { children: ReactNode }) {
       // Search query
       if (filter.searchQuery) {
         const query = filter.searchQuery.toLowerCase();
-        const searchable = `${log.actor.name} ${log.actor.email} ${log.action} ${log.target?.name || ''}`.toLowerCase();
+        const searchable = `${log.actor?.name || ''} ${log.actor?.email || ''} ${log.action} ${log.target?.name || ''}`.toLowerCase();
         if (!searchable.includes(query)) return false;
       }
       
@@ -175,7 +175,7 @@ export function AuditProvider({ children }: { children: ReactNode }) {
   }, [logs]);
 
   const getLogsByUser = useCallback((userId: string) => {
-    return logs.filter(log => log.actor.id === userId);
+    return logs.filter(log => log.actor?.id === userId);
   }, [logs]);
 
   const getLogsByAction = useCallback((action: AuditAction) => {
@@ -204,11 +204,14 @@ export function AuditProvider({ children }: { children: ReactNode }) {
     const actorCounts: Record<string, { name: string; count: number }> = {};
     
     logs.forEach(log => {
+      // Safeguard: skip logs with undefined actor
+      if (!log?.actor?.id) return;
+
       eventsByAction[log.action] = (eventsByAction[log.action] || 0) + 1;
       eventsBySeverity[log.severity]++;
-      
+
       if (!actorCounts[log.actor.id]) {
-        actorCounts[log.actor.id] = { name: log.actor.name, count: 0 };
+        actorCounts[log.actor.id] = { name: log.actor.name || 'Unknown', count: 0 };
       }
       actorCounts[log.actor.id].count++;
     });

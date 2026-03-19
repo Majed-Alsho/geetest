@@ -188,7 +188,7 @@ export function CookieConsent() {
                     <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                       We use cookies to enhance your browsing experience and analyze traffic. 
                       By clicking &quot;Accept All&quot;, you consent to our use of cookies.
-                      <Link to="privacy" className="text-accent hover:underline ml-1">
+                      <Link href="/privacy" className="text-accent hover:underline ml-1">
                         Learn more
                       </Link>
                     </p>

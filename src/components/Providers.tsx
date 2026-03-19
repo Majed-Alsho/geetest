@@ -1,9 +1,9 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SessionProvider } from 'next-auth/react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CompareProvider } from '@/contexts/CompareContext';
-import { NavigationProvider } from '@/contexts/NavigationContext';
 import { SupportProvider } from '@/contexts/SupportContext';
 import { AdProvider } from '@/contexts/AdContext';
 import { ListingProvider } from '@/contexts/ListingContext';
@@ -15,17 +15,25 @@ import { EarningsProvider } from '@/contexts/EarningsContext';
 import { VerificationProvider } from '@/contexts/VerificationContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
+
+// Create a stable QueryClient instance outside the component
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ListingProvider>
-          <CompareProvider>
-            <NavigationProvider>
+    <SessionProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ListingProvider>
+            <CompareProvider>
               <SupportProvider>
                 <AdProvider>
                   <NotificationsProvider>
@@ -46,10 +54,10 @@ export function Providers({ children }: { children: ReactNode }) {
                   </NotificationsProvider>
                 </AdProvider>
               </SupportProvider>
-            </NavigationProvider>
-          </CompareProvider>
-        </ListingProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+            </CompareProvider>
+          </ListingProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </SessionProvider>
   );
 }

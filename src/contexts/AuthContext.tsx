@@ -1,6 +1,8 @@
 'use client';
 
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export type AdminRole = 'owner' | 'superadmin' | 'admin';
 export type UserRole = 'user' | AdminRole;
@@ -25,7 +27,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  clientNumber?: string; // Only for regular users (not admins)
+  clientNumber?: string;
   createdAt: Date;
   savedListings?: string[];
   alerts?: { category?: string; region?: string; maxPrice?: number }[];
@@ -35,8 +37,7 @@ export interface User {
   loginCount?: number;
   twoFactorEnabled?: boolean;
   twoFactorSecret?: string;
-  // New profile fields
-  avatar?: string; // Base64 data URL for profile picture
+  avatar?: string;
   bio?: string;
   phone?: string;
   website?: string;
@@ -87,9 +88,8 @@ interface AuthContextType {
   isListingSaved: (listingId: string) => boolean;
   addAlert: (alert: { category?: string; region?: string; maxPrice?: number }) => void;
   removeAlert: (index: number) => void;
-  // User profile functions
-  updateUserProfile: (data: { 
-    name?: string; 
+  updateUserProfile: (data: {
+    name?: string;
     email?: string;
     avatar?: string;
     bio?: string;
@@ -102,7 +102,6 @@ interface AuthContextType {
     preferences?: UserPreferences;
   }) => Promise<{ success: boolean; error?: string }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
-  // Admin functions
   getAllUsers: () => User[];
   getUserById: (userId: string) => User | undefined;
   getUserByClientNumber: (clientNumber: string) => User | undefined;
@@ -110,18 +109,14 @@ interface AuthContextType {
   unsuspendUser: (userId: string) => boolean;
   deleteUser: (userId: string) => boolean;
   updateUserRole: (userId: string, role: UserRole) => boolean;
-  // Password reset functions
   createPasswordResetToken: (userId: string) => PasswordResetToken | null;
   resetPasswordWithToken: (token: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   getPendingResetTokens: () => PasswordResetToken[];
-  // Data export function (GDPR)
   exportUserData: () => Promise<{ success: boolean; data?: string; error?: string }>;
-  // Two-factor authentication
   generateTwoFactorSecret: () => { secret: string; qrCodeUrl: string };
   enableTwoFactor: (secret: string, verificationCode: string) => Promise<{ success: boolean; error?: string }>;
   disableTwoFactor: () => Promise<{ success: boolean; error?: string }>;
   verifyTwoFactor: (code: string) => boolean;
-  // Session management
   getSessions: () => UserSession[];
   revokeSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
   revokeAllOtherSessions: () => Promise<{ success: boolean; error?: string }>;
@@ -130,350 +125,261 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Storage keys
-const USERS_KEY = 'gee_users';
-const SESSION_KEY = 'gee_session';
-const SESSIONS_KEY = 'gee_user_sessions';
-const RESET_TOKENS_KEY = 'gee_password_reset_tokens';
-
-// Admin credentials
-const ADMIN_ACCOUNTS: { username: string; password: string; role: AdminRole; name: string }[] = [
-  { username: 'Majed', password: 'PureLegend!1122!0405!', role: 'owner', name: 'Majed' },
-  { username: 'owner', password: 'Owner2024!', role: 'owner', name: 'Platform Owner' },
-  { username: 'superadmin', password: 'SuperAdmin2024!', role: 'superadmin', name: 'Super Administrator' },
-  { username: 'admin', password: 'GlobalEquity2024!', role: 'admin', name: 'Administrator' },
-];
-
-// Generate a unique client number
-function generateClientNumber(): string {
-  const year = new Date().getFullYear().toString().slice(-2);
-  const random = Math.random().toString(36).substr(2, 8).toUpperCase();
-  return `GEE-${year}-${random}`;
-}
-
-// Pre-seeded user accounts
-const SEED_USERS: Record<string, { password: string; user: User }> = {
-  'majed1.alshoghri@gmail.com': {
-    password: 'PureLegend!1122!0405!',
-    user: {
-      id: 'user-majed-001',
-      email: 'majed1.alshoghri@gmail.com',
-      name: 'Majed Alshoghri',
-      role: 'user',
-      clientNumber: 'GEE-24-ALSH001',
-      createdAt: new Date('2024-01-01'),
-      savedListings: [],
-      alerts: [],
-      loginCount: 0,
-    }
-  }
-};
-
-// Helper functions for localStorage
-function getStoredUsers(): Record<string, { password: string; user: User }> {
-  if (typeof window === 'undefined') return SEED_USERS;
-  try {
-    const data = localStorage.getItem(USERS_KEY);
-    const storedUsers = data ? JSON.parse(data) : {};
-    return { ...storedUsers, ...SEED_USERS };
-  } catch {
-    return SEED_USERS;
-  }
-}
-
-function saveUsers(users: Record<string, { password: string; user: User }>) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  } catch (e) {
-    console.error('Failed to save users:', e);
-  }
-}
-
-function getStoredSession(): User | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const data = localStorage.getItem(SESSION_KEY);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveSessionToStorage(user: User | null) {
-  if (typeof window === 'undefined') return;
-  try {
-    if (user) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(SESSION_KEY);
-    }
-  } catch (e) {
-    console.error('Failed to save session:', e);
-  }
-}
-
-// Session management helpers
-function getStoredSessions(): UserSession[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const data = localStorage.getItem(SESSIONS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSessions(sessions: UserSession[]) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-  } catch (e) {
-    console.error('Failed to save sessions:', e);
-  }
-}
-
-function parseUserAgent(userAgent: string): { browser: string; os: string; deviceName: string } {
-  // Simple user agent parsing
-  let browser = 'Unknown Browser';
-  let os = 'Unknown OS';
-  let deviceName = 'Unknown Device';
+// Helper to convert NextAuth session user to our User type
+function sessionToUser(session: any): User | null {
+  if (!session?.user) return null;
   
-  // Detect browser
-  if (userAgent.includes('Firefox')) browser = 'Firefox';
-  else if (userAgent.includes('Edg')) browser = 'Edge';
-  else if (userAgent.includes('Chrome')) browser = 'Chrome';
-  else if (userAgent.includes('Safari')) browser = 'Safari';
-  else if (userAgent.includes('Opera') || userAgent.includes('OPR')) browser = 'Opera';
+  // Normalize role to lowercase for frontend use
+  const normalizedRole = session.user.role?.toLowerCase() || 'user';
   
-  // Detect OS
-  if (userAgent.includes('Windows')) os = 'Windows';
-  else if (userAgent.includes('Mac')) os = 'macOS';
-  else if (userAgent.includes('Linux')) os = 'Linux';
-  else if (userAgent.includes('Android')) os = 'Android';
-  else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'iOS';
-  
-  // Device name
-  if (userAgent.includes('Mobile')) deviceName = 'Mobile Device';
-  else if (userAgent.includes('Tablet')) deviceName = 'Tablet';
-  else deviceName = 'Desktop';
-  
-  return { browser, os, deviceName };
-}
-
-// Lazy initializer function - runs only once on mount
-function getInitialUser(): User | null {
-  if (typeof window === 'undefined') return null;
-  return getStoredSession();
+  return {
+    id: session.user.id || '',
+    email: session.user.email || '',
+    name: session.user.name || '',
+    role: normalizedRole as UserRole,
+    clientNumber: session.user.clientNumber,
+    createdAt: new Date(session.user.createdAt || Date.now()),
+    savedListings: session.user.savedListings || [],
+    alerts: session.user.alerts || [],
+    isSuspended: session.user.isSuspended,
+    suspensionReason: session.user.suspensionReason,
+    lastLoginAt: session.user.lastLoginAt ? new Date(session.user.lastLoginAt) : undefined,
+    loginCount: session.user.loginCount,
+    twoFactorEnabled: session.user.twoFactorEnabled,
+    avatar: session.user.avatar,
+    bio: session.user.bio,
+    phone: session.user.phone,
+    website: session.user.website,
+    company: session.user.company,
+    jobTitle: session.user.jobTitle,
+    location: session.user.location,
+    socialLinks: session.user.socialLinks,
+    preferences: session.user.preferences,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(getInitialUser);
+  const { data: session, status, update } = useSession();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Listen for storage changes (multi-tab support)
+  // Sync user state with NextAuth session
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === SESSION_KEY) {
-        setUser(getStoredSession());
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    if (status === 'authenticated' && session?.user) {
+      setUser(sessionToUser(session));
+    } else if (status === 'unauthenticated') {
+      setUser(null);
+    }
+    setIsInitialized(true);
+  }, [session, status]);
 
-  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  // Login using NextAuth credentials provider
+  const login = useCallback(async (email: string, password: string) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[AuthContext] Attempting login for:', email);
+      
+      const result = await signIn('credentials', {
+        email: email.toLowerCase().trim(),
+        password,
+        redirect: false,
+      });
 
-      const users = getStoredUsers();
-      const normalizedEmail = email.toLowerCase().trim();
-      const userRecord = users[normalizedEmail];
+      console.log('[AuthContext] SignIn result:', { 
+        ok: result?.ok, 
+        error: result?.error,
+        status: result?.status 
+      });
 
-      if (!userRecord) {
-        return { success: false, error: 'No account found with this email.' };
+      if (result?.error) {
+        // Map NextAuth errors to user-friendly messages
+        const errorMessages: Record<string, string> = {
+          'CredentialsSignin': 'Invalid email or password. Please try again.',
+          'SessionRequired': 'Please sign in to access this page.',
+          'Default': 'Login failed. Please check your credentials and try again.',
+        };
+        
+        const errorMessage = errorMessages[result.error] || result.error;
+        console.log('[AuthContext] Login error:', result.error, '->', errorMessage);
+        return { success: false, error: errorMessage };
       }
 
-      if (userRecord.password !== password) {
-        return { success: false, error: 'Invalid password.' };
+      if (result?.ok) {
+        console.log('[AuthContext] Login successful, updating session...');
+        // Force session update
+        await update();
+        return { success: true };
       }
 
-      if (userRecord.user.isSuspended) {
-        return { success: false, error: `Account suspended: ${userRecord.user.suspensionReason || 'No reason provided'}` };
-      }
-
-      // Update login stats
-      const updatedUser = {
-        ...userRecord.user,
-        lastLoginAt: new Date(),
-        loginCount: (userRecord.user.loginCount || 0) + 1,
-      };
-      users[normalizedEmail].user = updatedUser;
-      saveUsers(users);
-
-      setUser(updatedUser);
-      saveSessionToStorage(updatedUser);
-      return { success: true };
+      return { success: false, error: 'Login failed. Please try again.' };
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('[AuthContext] Login error:', error);
       return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
-  }, []);
+  }, [update]);
 
-  const signup = useCallback(async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  // Signup - call API then login
+  const signup = useCallback(async (name: string, email: string, password: string) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-      const users = getStoredUsers();
-      const normalizedEmail = email.toLowerCase().trim();
+      const data = await response.json();
 
-      if (users[normalizedEmail]) {
-        return { success: false, error: 'An account with this email already exists.' };
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Registration failed' };
       }
 
-      const newUser: User = {
-        id: crypto.randomUUID(),
-        email: normalizedEmail,
-        name: name.trim(),
-        role: 'user',
-        clientNumber: generateClientNumber(),
-        createdAt: new Date(),
-        savedListings: [],
-        alerts: [],
-        loginCount: 1,
-        lastLoginAt: new Date(),
-      };
-
-      users[normalizedEmail] = { password, user: newUser };
-      saveUsers(users);
-      setUser(newUser);
-      saveSessionToStorage(newUser);
-      return { success: true };
+      // Auto-login after successful registration
+      return login(email, password);
     } catch (error) {
       console.error('Signup error:', error);
       return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
-  }, []);
+  }, [login]);
 
-  const adminLogin = useCallback(async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  // Admin login using NextAuth
+  const adminLogin = useCallback(async (username: string, password: string) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Admin login uses the same credentials provider but with admin email format
+      const email = `${username}@globalequityexchange.com`;
+      
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+        isAdminLogin: 'true',
+      });
 
-      const validAdmin = ADMIN_ACCOUNTS.find(
-        (admin) => admin.username === username && admin.password === password
-      );
-
-      if (!validAdmin) {
-        return { success: false, error: 'Invalid admin credentials.' };
+      if (result?.error) {
+        return { success: false, error: result.error };
       }
 
-      const adminUser: User = {
-        id: `admin-${validAdmin.role}-${Date.now()}`,
-        email: `${validAdmin.username}@globalequityexchange.com`,
-        name: validAdmin.name,
-        role: validAdmin.role,
-        createdAt: new Date(),
-        lastLoginAt: new Date(),
-        loginCount: 1,
-      };
+      if (result?.ok) {
+        await update();
+        return { success: true };
+      }
 
-      setUser(adminUser);
-      saveSessionToStorage(adminUser);
-      return { success: true };
+      return { success: false, error: 'Admin login failed. Please try again.' };
     } catch (error) {
       console.error('Admin login error:', error);
       return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
-  }, []);
+  }, [update]);
 
+  // Logout using NextAuth
   const logout = useCallback(() => {
-    setUser(null);
-    saveSessionToStorage(null);
-  }, []);
+    signOut({ redirect: false }).then(() => {
+      router.push('/');
+    });
+  }, [router]);
 
-  const saveListing = useCallback((listingId: string) => {
-    setUser(currentUser => {
-      if (!currentUser) return currentUser;
-      
-      const savedListings = [...(currentUser.savedListings || [])];
-      if (!savedListings.includes(listingId)) {
-        savedListings.push(listingId);
-        const updatedUser = { ...currentUser, savedListings };
-        saveSessionToStorage(updatedUser);
-        
-        const users = getStoredUsers();
-        const normalizedEmail = currentUser.email.toLowerCase().trim();
-        if (users[normalizedEmail]) {
-          users[normalizedEmail].user = updatedUser;
-          saveUsers(users);
+  // Save listing to user's saved list
+  const saveListing = useCallback(async (listingId: string) => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'saveListing',
+          listingId,
+        }),
+      });
+
+      if (response.ok) {
+        const savedListings = [...(user.savedListings || [])];
+        if (!savedListings.includes(listingId)) {
+          savedListings.push(listingId);
+          setUser({ ...user, savedListings });
         }
-        return updatedUser;
       }
-      return currentUser;
-    });
-  }, []);
+    } catch (error) {
+      console.error('Save listing error:', error);
+    }
+  }, [user]);
 
-  const unsaveListing = useCallback((listingId: string) => {
-    setUser(currentUser => {
-      if (!currentUser) return currentUser;
-      
-      const savedListings = (currentUser.savedListings || []).filter(id => id !== listingId);
-      const updatedUser = { ...currentUser, savedListings };
-      saveSessionToStorage(updatedUser);
-      
-      const users = getStoredUsers();
-      const normalizedEmail = currentUser.email.toLowerCase().trim();
-      if (users[normalizedEmail]) {
-        users[normalizedEmail].user = updatedUser;
-        saveUsers(users);
+  // Unsave listing
+  const unsaveListing = useCallback(async (listingId: string) => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'unsaveListing',
+          listingId,
+        }),
+      });
+
+      if (response.ok) {
+        const savedListings = (user.savedListings || []).filter(id => id !== listingId);
+        setUser({ ...user, savedListings });
       }
-      return updatedUser;
-    });
-  }, []);
+    } catch (error) {
+      console.error('Unsave listing error:', error);
+    }
+  }, [user]);
 
+  // Check if listing is saved
   const isListingSaved = useCallback((listingId: string): boolean => {
     return user?.savedListings?.includes(listingId) || false;
   }, [user]);
 
-  const addAlert = useCallback((alert: { category?: string; region?: string; maxPrice?: number }) => {
-    setUser(currentUser => {
-      if (!currentUser) return currentUser;
-      
-      const alerts = [...(currentUser.alerts || []), alert];
-      const updatedUser = { ...currentUser, alerts };
-      saveSessionToStorage(updatedUser);
-      
-      const users = getStoredUsers();
-      const normalizedEmail = currentUser.email.toLowerCase().trim();
-      if (users[normalizedEmail]) {
-        users[normalizedEmail].user = updatedUser;
-        saveUsers(users);
-      }
-      return updatedUser;
-    });
-  }, []);
+  // Add alert
+  const addAlert = useCallback(async (alert: { category?: string; region?: string; maxPrice?: number }) => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'addAlert',
+          alert,
+        }),
+      });
 
-  const removeAlert = useCallback((index: number) => {
-    setUser(currentUser => {
-      if (!currentUser) return currentUser;
-      
-      const alerts = (currentUser.alerts || []).filter((_, i) => i !== index);
-      const updatedUser = { ...currentUser, alerts };
-      saveSessionToStorage(updatedUser);
-      
-      const users = getStoredUsers();
-      const normalizedEmail = currentUser.email.toLowerCase().trim();
-      if (users[normalizedEmail]) {
-        users[normalizedEmail].user = updatedUser;
-        saveUsers(users);
+      if (response.ok) {
+        const alerts = [...(user.alerts || []), alert];
+        setUser({ ...user, alerts });
       }
-      return updatedUser;
-    });
-  }, []);
+    } catch (error) {
+      console.error('Add alert error:', error);
+    }
+  }, [user]);
 
-  // User profile functions
-  const updateUserProfile = useCallback(async (data: { 
-    name?: string; 
+  // Remove alert
+  const removeAlert = useCallback(async (index: number) => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'removeAlert',
+          alertIndex: index,
+        }),
+      });
+
+      if (response.ok) {
+        const alerts = (user.alerts || []).filter((_, i) => i !== index);
+        setUser({ ...user, alerts });
+      }
+    } catch (error) {
+      console.error('Remove alert error:', error);
+    }
+  }, [user]);
+
+  // Update user profile
+  const updateUserProfile = useCallback(async (data: {
+    name?: string;
     email?: string;
     avatar?: string;
     bio?: string;
@@ -484,102 +390,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     location?: string;
     socialLinks?: UserSocialLinks;
     preferences?: UserPreferences;
-  }): Promise<{ success: boolean; error?: string }> => {
+  }) => {
+    if (!user) {
+      return { success: false, error: 'Not authenticated.' };
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      if (!user) {
-        return { success: false, error: 'Not authenticated.' };
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to update profile' };
       }
-      
-      const users = getStoredUsers();
-      const currentEmail = user.email.toLowerCase().trim();
-      const userRecord = users[currentEmail];
-      
-      if (!userRecord) {
-        return { success: false, error: 'User not found.' };
-      }
-      
-      // If changing email, check if new email is already taken
-      if (data.email && data.email.toLowerCase() !== currentEmail) {
-        const newEmail = data.email.toLowerCase().trim();
-        if (users[newEmail]) {
-          return { success: false, error: 'An account with this email already exists.' };
-        }
-        
-        // Move user record to new email
-        const updatedUser = {
-          ...user,
-          ...data,
-          email: newEmail,
-        };
-        
-        delete users[currentEmail];
-        users[newEmail] = { password: userRecord.password, user: updatedUser };
-        saveUsers(users);
-        
-        setUser(updatedUser);
-        saveSessionToStorage(updatedUser);
-      } else {
-        // Update profile fields
-        const updatedUser = { ...user };
-        
-        // Update each field if provided
-        if (data.name !== undefined) updatedUser.name = data.name;
-        if (data.avatar !== undefined) updatedUser.avatar = data.avatar;
-        if (data.bio !== undefined) updatedUser.bio = data.bio;
-        if (data.phone !== undefined) updatedUser.phone = data.phone;
-        if (data.website !== undefined) updatedUser.website = data.website;
-        if (data.company !== undefined) updatedUser.company = data.company;
-        if (data.jobTitle !== undefined) updatedUser.jobTitle = data.jobTitle;
-        if (data.location !== undefined) updatedUser.location = data.location;
-        if (data.socialLinks !== undefined) updatedUser.socialLinks = data.socialLinks;
-        if (data.preferences !== undefined) updatedUser.preferences = data.preferences;
-        
-        users[currentEmail].user = updatedUser;
-        saveUsers(users);
-        
-        setUser(updatedUser);
-        saveSessionToStorage(updatedUser);
-      }
-      
+
+      // Update local state
+      setUser({ ...user, ...data });
+      await update();
+
       return { success: true };
     } catch (error) {
       console.error('Update profile error:', error);
       return { success: false, error: 'An unexpected error occurred.' };
     }
-  }, [user]);
+  }, [user, update]);
 
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+  // Change password
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!user) {
+      return { success: false, error: 'Not authenticated.' };
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      if (!user) {
-        return { success: false, error: 'Not authenticated.' };
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'changePassword',
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to change password' };
       }
-      
-      const users = getStoredUsers();
-      const currentEmail = user.email.toLowerCase().trim();
-      const userRecord = users[currentEmail];
-      
-      if (!userRecord) {
-        return { success: false, error: 'User not found.' };
-      }
-      
-      // Verify current password
-      if (userRecord.password !== currentPassword) {
-        return { success: false, error: 'Current password is incorrect.' };
-      }
-      
-      // Validate new password
-      if (newPassword.length < 8) {
-        return { success: false, error: 'New password must be at least 8 characters.' };
-      }
-      
-      // Update password
-      users[currentEmail].password = newPassword;
-      saveUsers(users);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Change password error:', error);
@@ -587,415 +449,273 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Admin functions
+  // Admin: Get all users
   const getAllUsers = useCallback((): User[] => {
-    const users = getStoredUsers();
-    return Object.values(users).map(record => record.user);
+    // This should be called from admin pages that fetch from API
+    return [];
   }, []);
 
+  // Admin: Get user by ID
   const getUserById = useCallback((userId: string): User | undefined => {
-    const users = getStoredUsers();
-    return Object.values(users).find(record => record.user.id === userId)?.user;
-  }, []);
+    if (user?.id === userId) return user;
+    return undefined;
+  }, [user]);
 
+  // Admin: Get user by client number
   const getUserByClientNumber = useCallback((clientNumber: string): User | undefined => {
-    const users = getStoredUsers();
-    return Object.values(users).find(record => 
-      record.user.clientNumber?.toUpperCase() === clientNumber.toUpperCase()
-    )?.user;
-  }, []);
+    if (user?.clientNumber?.toUpperCase() === clientNumber.toUpperCase()) return user;
+    return undefined;
+  }, [user]);
 
-  const suspendUser = useCallback((userId: string, reason: string): boolean => {
-    const users = getStoredUsers();
-    const email = Object.keys(users).find(key => users[key].user.id === userId);
-    
-    if (email) {
-      users[email].user = {
-        ...users[email].user,
-        isSuspended: true,
-        suspensionReason: reason,
-      };
-      saveUsers(users);
-      return true;
-    }
-    return false;
-  }, []);
+  // Admin: Suspend user
+  const suspendUser = useCallback(async (userId: string, reason: string) => {
+    if (!user?.role || !['admin', 'superadmin', 'owner'].includes(user.role)) return false;
 
-  const unsuspendUser = useCallback((userId: string): boolean => {
-    const users = getStoredUsers();
-    const email = Object.keys(users).find(key => users[key].user.id === userId);
-    
-    if (email) {
-      users[email].user = {
-        ...users[email].user,
-        isSuspended: false,
-        suspensionReason: undefined,
-      };
-      saveUsers(users);
-      return true;
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'suspend',
+          reason,
+        }),
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Suspend user error:', error);
+      return false;
     }
-    return false;
-  }, []);
+  }, [user]);
+
+  // Admin: Unsuspend user
+  const unsuspendUser = useCallback(async (userId: string) => {
+    if (!user?.role || !['admin', 'superadmin', 'owner'].includes(user.role)) return false;
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unsuspend' }),
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Unsuspend user error:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Admin: Delete user
+  const deleteUser = useCallback(async (userId: string) => {
+    if (!user?.role || !['superadmin', 'owner'].includes(user.role)) return false;
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Delete user error:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Admin: Update user role
+  const updateUserRole = useCallback(async (userId: string, role: UserRole) => {
+    if (!user?.role || !['superadmin', 'owner'].includes(user.role)) return false;
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateRole', role }),
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Update user role error:', error);
+      return false;
+    }
+  }, [user]);
 
   // Password reset token functions
-  const getStoredResetTokens = useCallback((): PasswordResetToken[] => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const data = localStorage.getItem(RESET_TOKENS_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  }, []);
-
-  const saveResetTokens = useCallback((tokens: PasswordResetToken[]) => {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(RESET_TOKENS_KEY, JSON.stringify(tokens));
-    } catch (e) {
-      console.error('Failed to save reset tokens:', e);
-    }
-  }, []);
-
   const createPasswordResetToken = useCallback((userId: string): PasswordResetToken | null => {
-    const users = getStoredUsers();
-    const email = Object.keys(users).find(key => users[key].user.id === userId);
-    
-    if (!email) return null;
-    
-    const token = crypto.randomUUID();
-    const now = new Date();
-    const expiresAt = new Date(now);
-    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
-    
-    const resetToken: PasswordResetToken = {
-      id: crypto.randomUUID(),
-      userId,
-      userEmail: email,
-      token,
-      createdAt: now,
-      expiresAt,
-      used: false,
-    };
-    
-    const tokens = getStoredResetTokens();
-    // Remove any existing tokens for this user
-    const filteredTokens = tokens.filter(t => t.userId !== userId);
-    filteredTokens.push(resetToken);
-    saveResetTokens(filteredTokens);
-    
-    return resetToken;
-  }, [getStoredResetTokens, saveResetTokens]);
+    // This should be handled by API
+    return null;
+  }, []);
 
-  const resetPasswordWithToken = useCallback(async (token: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
-    const tokens = getStoredResetTokens();
-    const resetToken = tokens.find(t => t.token === token);
-    
-    if (!resetToken) {
-      return { success: false, error: 'Invalid reset token.' };
+  const resetPasswordWithToken = useCallback(async (token: string, newPassword: string) => {
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to reset password' };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { success: false, error: 'An unexpected error occurred.' };
     }
-    
-    if (resetToken.used) {
-      return { success: false, error: 'This reset link has already been used.' };
-    }
-    
-    if (new Date(resetToken.expiresAt) < new Date()) {
-      return { success: false, error: 'This reset link has expired.' };
-    }
-    
-    const users = getStoredUsers();
-    const userRecord = users[resetToken.userEmail];
-    
-    if (!userRecord) {
-      return { success: false, error: 'User not found.' };
-    }
-    
-    // Update password
-    users[resetToken.userEmail].password = newPassword;
-    saveUsers(users);
-    
-    // Mark token as used
-    const updatedTokens = tokens.map(t => 
-      t.token === token ? { ...t, used: true } : t
-    );
-    saveResetTokens(updatedTokens);
-    
-    return { success: true };
-  }, [getStoredResetTokens, saveResetTokens]);
+  }, []);
 
   const getPendingResetTokens = useCallback((): PasswordResetToken[] => {
-    const tokens = getStoredResetTokens();
-    const now = new Date();
-    return tokens.filter(t => !t.used && new Date(t.expiresAt) > now);
-  }, [getStoredResetTokens]);
+    return [];
+  }, []);
 
-  // Export user data (GDPR Right to Access - Article 15)
-  const exportUserData = useCallback(async (): Promise<{ success: boolean; data?: string; error?: string }> => {
+  // Export user data (GDPR)
+  const exportUserData = useCallback(async () => {
+    if (!user) {
+      return { success: false, error: 'Not authenticated.' };
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (!user) {
-        return { success: false, error: 'Not authenticated.' };
+      const response = await fetch(`/api/users/${user.id}/export`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to export data' };
       }
-      
-      const users = getStoredUsers();
-      const currentEmail = user.email.toLowerCase().trim();
-      const userRecord = users[currentEmail];
-      
-      if (!userRecord) {
-        return { success: false, error: 'User not found.' };
-      }
-      
-      // Collect all user data
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        exportVersion: '1.0',
-        user: {
-          id: userRecord.user.id,
-          email: userRecord.user.email,
-          name: userRecord.user.name,
-          role: userRecord.user.role,
-          clientNumber: userRecord.user.clientNumber,
-          createdAt: userRecord.user.createdAt,
-          lastLoginAt: userRecord.user.lastLoginAt,
-          loginCount: userRecord.user.loginCount,
-          savedListings: userRecord.user.savedListings || [],
-          alerts: userRecord.user.alerts || [],
-        },
-        // Note: Password is intentionally NOT included for security
-        accountStatus: {
-          isSuspended: userRecord.user.isSuspended || false,
-          suspensionReason: userRecord.user.suspensionReason,
-        },
-        legalBasis: {
-          gdprArticle: 'Article 15 - Right of access by the data subject',
-          dataController: 'Global Equity Exchange',
-          retentionPeriod: 'Data retained for the duration of account existence plus 30 days',
-        },
-      };
-      
-      return { 
-        success: true, 
-        data: JSON.stringify(exportData, null, 2) 
-      };
+
+      return { success: true, data: JSON.stringify(result.data, null, 2) };
     } catch (error) {
       console.error('Export data error:', error);
       return { success: false, error: 'An unexpected error occurred.' };
     }
   }, [user]);
 
-  // Generate a TOTP secret for 2FA setup
+  // Two-factor authentication
   const generateTwoFactorSecret = useCallback((): { secret: string; qrCodeUrl: string } => {
-    // Generate a random base32 secret (simplified for demo)
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     let secret = '';
     for (let i = 0; i < 16; i++) {
       secret += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    
+
     const userEmail = user?.email || 'user@example.com';
     const issuer = 'GlobalEquityExchange';
     const qrCodeUrl = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(userEmail)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
-    
+
     return { secret, qrCodeUrl };
   }, [user]);
 
-  // Enable 2FA after verification
-  const enableTwoFactor = useCallback(async (secret: string, verificationCode: string): Promise<{ success: boolean; error?: string }> => {
+  const enableTwoFactor = useCallback(async (secret: string, verificationCode: string) => {
+    if (!user) {
+      return { success: false, error: 'Not authenticated.' };
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      if (!user) {
-        return { success: false, error: 'Not authenticated.' };
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'enable2FA',
+          secret,
+          verificationCode,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to enable 2FA' };
       }
-      
-      // In a real implementation, we would verify the TOTP code against the secret
-      // For demo purposes, accept any 6-digit code
-      if (!/^\d{6}$/.test(verificationCode)) {
-        return { success: false, error: 'Invalid verification code. Please enter a 6-digit code.' };
-      }
-      
-      const users = getStoredUsers();
-      const currentEmail = user.email.toLowerCase().trim();
-      
-      if (users[currentEmail]) {
-        const updatedUser = {
-          ...user,
-          twoFactorEnabled: true,
-          twoFactorSecret: secret,
-        };
-        
-        users[currentEmail].user = updatedUser;
-        saveUsers(users);
-        setUser(updatedUser);
-        saveSessionToStorage(updatedUser);
-        
-        return { success: true };
-      }
-      
-      return { success: false, error: 'Failed to enable 2FA.' };
+
+      setUser({ ...user, twoFactorEnabled: true, twoFactorSecret: secret });
+      return { success: true };
     } catch (error) {
       console.error('Enable 2FA error:', error);
       return { success: false, error: 'An unexpected error occurred.' };
     }
   }, [user]);
 
-  // Disable 2FA
-  const disableTwoFactor = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+  const disableTwoFactor = useCallback(async () => {
+    if (!user) {
+      return { success: false, error: 'Not authenticated.' };
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      if (!user) {
-        return { success: false, error: 'Not authenticated.' };
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'disable2FA' }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to disable 2FA' };
       }
-      
-      const users = getStoredUsers();
-      const currentEmail = user.email.toLowerCase().trim();
-      
-      if (users[currentEmail]) {
-        const updatedUser = {
-          ...user,
-          twoFactorEnabled: false,
-          twoFactorSecret: undefined,
-        };
-        
-        users[currentEmail].user = updatedUser;
-        saveUsers(users);
-        setUser(updatedUser);
-        saveSessionToStorage(updatedUser);
-        
-        return { success: true };
-      }
-      
-      return { success: false, error: 'Failed to disable 2FA.' };
+
+      setUser({ ...user, twoFactorEnabled: false, twoFactorSecret: undefined });
+      return { success: true };
     } catch (error) {
       console.error('Disable 2FA error:', error);
       return { success: false, error: 'An unexpected error occurred.' };
     }
   }, [user]);
 
-  // Verify 2FA code (for login flow)
   const verifyTwoFactor = useCallback((code: string): boolean => {
     if (!user?.twoFactorEnabled || !user.twoFactorSecret) {
-      return true; // No 2FA enabled, skip verification
+      return true;
     }
-    
-    // In a real implementation, this would verify the TOTP code
-    // For demo purposes, accept any 6-digit code
     return /^\d{6}$/.test(code);
   }, [user]);
 
-  // Session management functions
+  // Session management
   const createCurrentSession = useCallback(() => {
-    if (typeof window === 'undefined' || !user) return;
-    
-    const userAgent = navigator.userAgent;
-    const { browser, os, deviceName } = parseUserAgent(userAgent);
-    
-    const newSession: UserSession = {
-      id: `session-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`,
-      userId: user.id,
-      deviceName,
-      browser,
-      os,
-      ipAddress: '192.168.1.x', // In production, this would be the real IP
-      location: 'Unknown Location', // In production, this would be geolocated
-      createdAt: new Date(),
-      lastActiveAt: new Date(),
-      isCurrentSession: true,
-      userAgent,
-    };
-    
-    const sessions = getStoredSessions();
-    // Mark all other sessions as not current
-    const updatedSessions = sessions.map(s => ({ ...s, isCurrentSession: false }));
-    // Add new session
-    updatedSessions.push(newSession);
-    saveSessions(updatedSessions);
-  }, [user]);
+    // Session is automatically created by NextAuth
+  }, []);
 
   const getSessions = useCallback((): UserSession[] => {
-    if (!user) return [];
-    const sessions = getStoredSessions();
-    return sessions.filter(s => s.userId === user.id);
-  }, [user]);
+    // Sessions are managed by NextAuth
+    return [];
+  }, []);
 
-  const revokeSession = useCallback(async (sessionId: string): Promise<{ success: boolean; error?: string }> => {
+  const revokeSession = useCallback(async (sessionId: string) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      if (!user) {
-        return { success: false, error: 'Not authenticated.' };
+      const response = await fetch(`/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to revoke session' };
       }
-      
-      const sessions = getStoredSessions();
-      const session = sessions.find(s => s.id === sessionId);
-      
-      if (!session) {
-        return { success: false, error: 'Session not found.' };
-      }
-      
-      if (session.isCurrentSession) {
-        return { success: false, error: 'Cannot revoke your current session. Use logout instead.' };
-      }
-      
-      const updatedSessions = sessions.filter(s => s.id !== sessionId);
-      saveSessions(updatedSessions);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Revoke session error:', error);
       return { success: false, error: 'An unexpected error occurred.' };
     }
-  }, [user]);
+  }, []);
 
-  const revokeAllOtherSessions = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+  const revokeAllOtherSessions = useCallback(async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      if (!user) {
-        return { success: false, error: 'Not authenticated.' };
+      const response = await fetch('/api/sessions/revoke-all', {
+        method: 'POST',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || 'Failed to revoke sessions' };
       }
-      
-      const sessions = getStoredSessions();
-      const updatedSessions = sessions.filter(s => s.userId !== user.id || s.isCurrentSession);
-      saveSessions(updatedSessions);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Revoke all sessions error:', error);
       return { success: false, error: 'An unexpected error occurred.' };
     }
-  }, [user]);
-
-  const deleteUser = useCallback((userId: string): boolean => {
-    const users = getStoredUsers();
-    const email = Object.keys(users).find(key => users[key].user.id === userId);
-    
-    if (email && users[email].user.role === 'user') {
-      delete users[email];
-      saveUsers(users);
-      return true;
-    }
-    return false;
-  }, []);
-
-  const updateUserRole = useCallback((userId: string, role: UserRole): boolean => {
-    const users = getStoredUsers();
-    const email = Object.keys(users).find(key => users[key].user.id === userId);
-    
-    if (email) {
-      users[email].user.role = role;
-      // Remove client number if upgrading to admin
-      if (role !== 'user') {
-        users[email].user.clientNumber = undefined;
-      } else if (!users[email].user.clientNumber) {
-        users[email].user.clientNumber = generateClientNumber();
-      }
-      saveUsers(users);
-      return true;
-    }
-    return false;
   }, []);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'owner';
@@ -1038,7 +758,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         enableTwoFactor,
         disableTwoFactor,
         verifyTwoFactor,
-        // Session management
         getSessions,
         revokeSession,
         revokeAllOtherSessions,

@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { 
   Bell, X, Check, Trash2, CheckCheck, 
   MessageCircle, Heart, Eye, AlertCircle,
   DollarSign, Shield, TrendingUp
 } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationsContext';
-import { useNavigation } from '@/contexts/NavigationContext';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { cn, formatDistanceToNow } from '@/lib/utils';
 
@@ -44,6 +44,7 @@ const notificationColors: Record<string, string> = {
 export function NotificationsDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const { 
     notifications, 
     unreadCount, 
@@ -52,7 +53,6 @@ export function NotificationsDropdown() {
     deleteNotification,
     clearAll 
   } = useNotifications();
-  const { navigateTo } = useNavigation();
 
   // Close on outside click
   useEffect(() => {
@@ -71,9 +71,7 @@ export function NotificationsDropdown() {
     if (notification.actionUrl) {
       // Navigate to the action URL
       if (notification.actionUrl.startsWith('/')) {
-        // Extract view type from URL
-        const viewType = notification.actionUrl.slice(1).split('/')[0];
-        navigateTo(viewType as any);
+        router.push(notification.actionUrl);
       }
     }
     setIsOpen(false);
@@ -204,7 +202,7 @@ export function NotificationsDropdown() {
                 <div className="p-3 border-t border-border flex justify-between">
                   <button
                     onClick={() => {
-                      navigateTo('profile');
+                      router.push('/profile');
                       setIsOpen(false);
                     }}
                     className="text-xs text-accent hover:text-accent/80"
