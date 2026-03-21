@@ -1381,10 +1381,10 @@ export default function AdminDashboard() {
                             log.severity === 'warning' ? "bg-amber-500/10 text-amber-500" :
                             "bg-blue-500/10 text-blue-500"
                           )}>
-                            {log.severity}
+                            {log.severity || 'info'}
                           </span>
-                          <span className="font-medium">{log.eventType.replace(/_/g, ' ')}</span>
-                          {log.details.action && (
+                          <span className="font-medium">{(log.eventType || log.action || 'UNKNOWN_EVENT').replace(/_/g, ' ')}</span>
+                          {log.details?.action && (
                             <span className="text-muted-foreground">- {log.details.action}</span>
                           )}
                         </div>
@@ -1842,7 +1842,7 @@ export default function AdminDashboard() {
                           </td>
                           <td className="p-3">
                             <span className="px-2 py-1 rounded-lg bg-secondary text-xs">
-                              {log.eventType}
+                              {log.eventType || log.action || 'UNKNOWN'}
                             </span>
                           </td>
                           <td className="p-3">
