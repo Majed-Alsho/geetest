@@ -481,7 +481,7 @@ export default function AdminDashboard() {
     { id: 'listings', label: 'Listings Review', icon: Building2, badge: pendingListings.length, roles: ['admin', 'superadmin', 'owner'] },
     { id: 'ads', label: 'Ads Management', icon: Rocket, badge: adStats.pending, roles: ['superadmin', 'owner'] },
     { id: 'users', label: 'Users', icon: Users, badge: allUsers.length, roles: ['superadmin', 'owner'] },
-    { id: 'verifications', label: 'Verifications', icon: FileCheck, badge: getPendingRequests().length, roles: ['superadmin', 'owner'] },
+    { id: 'verifications', label: 'Verifications', icon: FileCheck, badge: getPendingRequests().length, roles: ['owner'] },
     { id: 'earnings', label: 'Earnings', icon: Wallet, roles: ['owner'] },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['superadmin', 'owner'] },
     { id: 'security', label: 'Security', icon: Shield, roles: ['owner'] },
@@ -1338,31 +1338,33 @@ export default function AdminDashboard() {
                 </GlassPanel>
               </div>
 
-              {/* Ad Revenue Stats */}
-              <GlassPanel className="p-6">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-green-500" />
-                  Ad Revenue & Performance
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-                    <p className="text-2xl font-bold text-green-500">${adStats.revenue.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">Total Revenue</p>
+              {/* Ad Revenue Stats - Owner Only */}
+              {isOwner && (
+                <GlassPanel className="p-6">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-green-500" />
+                    Ad Revenue & Performance
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                      <p className="text-2xl font-bold text-green-500">${adStats.revenue.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">Total Revenue</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-secondary/50">
+                      <p className="text-2xl font-bold">{adStats.active}</p>
+                      <p className="text-sm text-muted-foreground">Active Ads</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-secondary/50">
+                      <p className="text-2xl font-bold">{adStats.pending}</p>
+                      <p className="text-sm text-muted-foreground">Pending Approval</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-secondary/50">
+                      <p className="text-2xl font-bold">{adStats.total}</p>
+                      <p className="text-sm text-muted-foreground">Total Ads</p>
+                    </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-secondary/50">
-                    <p className="text-2xl font-bold">{adStats.active}</p>
-                    <p className="text-sm text-muted-foreground">Active Ads</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-secondary/50">
-                    <p className="text-2xl font-bold">{adStats.pending}</p>
-                    <p className="text-sm text-muted-foreground">Pending Approval</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-secondary/50">
-                    <p className="text-2xl font-bold">{adStats.total}</p>
-                    <p className="text-sm text-muted-foreground">Total Ads</p>
-                  </div>
-                </div>
-              </GlassPanel>
+                </GlassPanel>
+              )}
 
               {/* Security Summary */}
               <GlassPanel className="p-6">
