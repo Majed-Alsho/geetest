@@ -15,9 +15,12 @@ A premium business marketplace platform that facilitates the acquisition of veri
 7. [API Routes](#api-routes)
 8. [Data Models](#data-models)
 9. [Role-Based Access Control](#role-based-access-control)
-10. [Seeded Data & Test Accounts](#seeded-data--test-accounts)
-11. [Quick Start](#quick-start)
-12. [Development Guide](#development-guide)
+10. [Admin Dashboard](#admin-dashboard)
+11. [Location & Map System](#location--map-system)
+12. [Seeded Data & Test Accounts](#seeded-data--test-accounts)
+13. [Quick Start](#quick-start)
+14. [Development Guide](#development-guide)
+15. [Bug Fixes & Changes](#bug-fixes--changes)
 
 ---
 
@@ -66,19 +69,27 @@ The platform emphasizes trust and security with verification badges, audit loggi
 | **Account Suspension** | Admin can suspend/deactivate users |
 | **GDPR Compliance** | Data export and account deletion features |
 
-### Admin Dashboard
+### Location & Map System
 
 | Feature | Description |
 |---------|-------------|
-| **User Management** | View, edit, suspend, delete users |
-| **Listing Moderation** | Approve/reject pending listings |
-| **Ad Management** | Review and approve advertisements |
-| **Support Tickets** | Handle user support requests |
-| **Analytics Dashboard** | Platform statistics and metrics |
-| **Income Tracking** | Daily, weekly, monthly, yearly revenue |
-| **Audit Logs** | View all platform activity |
-| **Rate Limit Monitor** | View and manage rate limits |
-| **Announcements** | Create platform-wide announcements |
+| **Address Autocomplete** | OpenStreetMap Nominatim integration (no API key required) |
+| **Geolocation** | "Use my current location" with reverse geocoding |
+| **Privacy Controls** | Toggle between exact location or general area |
+| **Map Preview** | Embedded OpenStreetMap with expandable view |
+| **Auto Region Detection** | Automatically sets region based on selected country |
+| **Coordinate Storage** | Latitude/longitude stored with privacy toggle |
+
+### Image Upload System
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-Image Upload** | Support for up to 10 images per listing |
+| **Drag & Drop** | Intuitive drag-and-drop interface |
+| **Primary Image** | Set featured image with star badge |
+| **Image Reordering** | Move images left/right to reorder |
+| **Captions** | Add captions to primary images |
+| **Size Validation** | Max 5MB per image, JPG/PNG/WebP/GIF supported |
 
 ---
 
@@ -119,6 +130,13 @@ The platform emphasizes trust and security with verification badges, audit loggi
 | **React Context** | Client-side state management |
 | **TanStack Query** | Server state management |
 
+### External Services
+
+| Service | Purpose |
+|---------|---------|
+| **OpenStreetMap** | Map tiles and embeds |
+| **Nominatim API** | Address geocoding and reverse geocoding |
+
 ---
 
 ## Project Structure
@@ -132,7 +150,8 @@ src/
 │   │
 │   ├── api/                     # API Routes
 │   │   ├── auth/[...nextauth]/  # NextAuth API endpoints
-│   │   └── listings/            # Listings CRUD API
+│   │   ├── listings/            # Listings CRUD API
+│   │   └── users/[id]/          # User profile/avatar API
 │   │
 │   ├── admin/                   # Admin dashboard (/admin)
 │   ├── admin-login/             # Admin login page
@@ -163,6 +182,12 @@ src/
 │   │   ├── FiltersBar.tsx      # Search and filter controls
 │   │   ├── CompareBar.tsx      # Comparison selection bar
 │   │   └── ListingActions.tsx  # Save, share, promote actions
+│   │
+│   ├── location/                # Location & Map components
+│   │   └── LocationPicker.tsx  # Address autocomplete + map
+│   │
+│   ├── upload/                  # Upload components
+│   │   └── ImageUploader.tsx   # Multi-image upload with drag-drop
 │   │
 │   ├── auth/                    # Authentication components
 │   │   ├── ProtectedRoute.tsx  # Route guard
@@ -209,10 +234,10 @@ src/
 │   ├── Marketplace.tsx          # Browse listings
 │   ├── ListingDetail.tsx        # Single listing view
 │   ├── ComparePage.tsx          # Side-by-side comparison
-│   ├── CreateListing.tsx        # Listing form
+│   ├── CreateListing.tsx        # Listing form with validation
 │   ├── Login.tsx                # User login
 │   ├── AdminLogin.tsx           # Admin authentication
-│   ├── AdminDashboard.tsx       # Admin panel
+│   ├── AdminDashboard.tsx       # Admin panel with RBAC
 │   ├── Profile.tsx              # User profile
 │   └── ... (other views)
 │
@@ -279,7 +304,7 @@ The application uses Next.js 16 App Router with file-based routing:
 
 ### NextAuth Configuration
 
-The application uses NextAuth.js with a Credentials provider for authentication:
+The application uses NextAuth.js with a Credentials provider for authentication. The JWT token is kept minimal (only `id` and `role`) to avoid size issues, with additional user data fetched from the database in the session callback.
 
 ```typescript
 // src/lib/auth/auth-options.ts
@@ -308,6 +333,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // Keep JWT minimal to avoid size issues
         token.role = user.role;
         token.id = user.id;
       }
@@ -317,11 +343,13 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.role = token.role;
         session.user.id = token.id;
+        // Fetch additional user data from DB if needed
       }
       return session;
     },
   },
   session: { strategy: 'jwt' },
+  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-key-for-development',
 };
 ```
 
@@ -364,6 +392,13 @@ await signOut({ callbackUrl: '/login' });
 | `/api/listings/[id]` | GET | Get single listing |
 | `/api/listings/[id]` | PUT | Update listing (auth required) |
 | `/api/listings/[id]` | DELETE | Delete listing (auth required) |
+
+### Users API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/users/[id]` | GET | Get user profile |
+| `/api/users/[id]` | PUT | Update user profile/avatar (auth required) |
 
 ### TanStack Query Hooks
 
@@ -414,6 +449,9 @@ model User {
   role          UserRole  @default(USER)
   clientNumber  String?   @unique
   emailVerified DateTime?
+  avatar        String?
+  bio           String?
+  phone         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -421,22 +459,28 @@ model User {
 }
 
 model Listing {
-  id          String   @id @default(cuid())
-  title       String
-  category    String
-  region      String
-  location    String
-  description String
-  price       Float
-  revenue     Float
-  status      String   @default("pending")
-  verified    Boolean  @default(false)
-  featured    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?
+  id                String   @id @default(cuid())
+  title             String
+  category          String
+  region            String
+  location          String
+  description       String
+  price             Float
+  revenue           Float
+  status            String   @default("pending")
+  verified          Boolean  @default(false)
+  featured          Boolean  @default(false)
   
-  author      User?    @relation(fields: [createdBy], references: [id])
+  // Location fields
+  latitude          Float?
+  longitude         Float?
+  showExactLocation Boolean @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?
+  
+  author            User?    @relation(fields: [createdBy], references: [id])
 }
 ```
 
@@ -502,6 +546,159 @@ const allTabs = [
   { id: 'earnings', label: 'Earnings', roles: ['owner'] },
 ];
 ```
+
+---
+
+## Admin Dashboard
+
+The admin dashboard is a comprehensive control panel with role-based tab visibility. Each tab provides specific management capabilities:
+
+### Support Tab (Admin+)
+- View all support tickets from users
+- Respond to tickets with status updates
+- Close or escalate tickets
+- Filter by status, priority, date
+
+### Listings Review Tab (Admin+)
+- View pending listings awaiting approval
+- Review listing details, financials, images
+- Approve or reject listings with notes
+- Admin role can view only, SuperAdmin+ can approve/reject
+
+### Ads Management Tab (SuperAdmin+)
+- Review advertisement submissions
+- Approve/reject ad campaigns
+- Manage ad placements and tiers
+- View ad performance metrics
+
+### Users Tab (SuperAdmin+)
+- View all registered users
+- Edit user profiles and roles
+- Suspend/activate accounts
+- Reset passwords
+- View user activity logs
+- **Safeguard**: Cannot edit Owner or SuperAdmin accounts (even as SuperAdmin)
+
+### Analytics Tab (SuperAdmin+)
+- Platform-wide statistics
+- User growth charts
+- Listing performance metrics
+- Revenue tracking
+- Geographic distribution
+
+### Security Tab (SuperAdmin+)
+- Two-factor authentication settings
+- Session management
+- Security alerts
+- IP allowlisting
+- Login attempt monitoring
+
+### Audit Logs Tab (SuperAdmin+)
+- Complete activity history
+- Filter by user, action, date
+- Export audit reports
+- Search functionality
+- Event details with actor information
+
+### Rate Limits Tab (SuperAdmin+)
+- View current rate limits
+- Configure limit thresholds
+- View blocked requests
+- Whitelist IP addresses
+
+### Verifications Tab (Owner Only)
+- Review business verification requests
+- Approve/reject verification documents
+- Manage verification badges
+- View verification history
+
+### Earnings Tab (Owner Only)
+- Daily, weekly, monthly revenue
+- Featured listing subscriptions
+- Ad revenue tracking
+- Payment history
+- Financial reports
+- Export capabilities
+
+---
+
+## Location & Map System
+
+The location system provides address search, geocoding, and map display with privacy controls.
+
+### Components
+
+#### LocationPicker (`src/components/location/LocationPicker.tsx`)
+
+The main component for address selection with:
+
+- **Address Autocomplete**: Uses OpenStreetMap Nominatim API
+- **Geolocation Button**: "Use my current location" with browser Geolocation API
+- **Map Preview**: Embedded OpenStreetMap with marker
+- **Privacy Toggle**: Switch between exact location and general area
+
+### LocationData Interface
+
+```typescript
+interface LocationData {
+  address: string;           // Full display name from Nominatim
+  formattedAddress?: string; // Formatted for display
+  city: string;
+  state?: string;
+  postalCode?: string;
+  country: string;
+  countryCode: string;
+  lat: number;
+  lng: number;
+  region: string;            // Auto-detected region (Europe, North America, etc.)
+  showExactLocation?: boolean;
+}
+```
+
+### Country to Region Mapping
+
+The system automatically maps country codes to platform regions:
+
+```typescript
+const COUNTRY_TO_REGION: Record<string, string> = {
+  // Europe
+  'AT': 'Europe', 'BE': 'Europe', 'BG': 'Europe', 'HR': 'Europe',
+  'CY': 'Europe', 'CZ': 'Europe', 'DK': 'Europe', 'EE': 'Europe',
+  'FI': 'Europe', 'FR': 'Europe', 'DE': 'Europe', 'GR': 'Europe',
+  // ... more European countries
+  
+  // North America
+  'US': 'North America', 'CA': 'North America', 'MX': 'North America',
+  
+  // Middle East
+  'AE': 'Middle East', 'SA': 'Middle East', 'QA': 'Middle East',
+  // ... more Middle East countries
+  
+  // Asia Pacific
+  'CN': 'Asia Pacific', 'JP': 'Asia Pacific', 'KR': 'Asia Pacific',
+  // ... more Asia Pacific countries
+  
+  // Australia
+  'AU': 'Australia',
+};
+```
+
+### Geolocation Error Handling
+
+The system provides specific error messages for geolocation failures:
+
+| Code | Error | Message |
+|------|-------|---------|
+| 1 | PERMISSION_DENIED | "Location permission denied. Please enable location access in your browser settings." |
+| 2 | POSITION_UNAVAILABLE | "Location unavailable. Your position could not be determined." |
+| 3 | TIMEOUT | "Location request timed out. Please try again." |
+
+### Privacy Controls
+
+When `showExactLocation` is `false`:
+- Only the general area is shown to buyers
+- The exact coordinates are stored but not displayed
+- A privacy circle can be shown instead of a precise marker
 
 ---
 
@@ -660,11 +857,11 @@ npx tsx prisma/seed.ts  # Seed test accounts
 
 ---
 
-## Recent Updates (March 2026)
+## Bug Fixes & Changes
 
-### Major Migration Complete
+### Migration from SPA to Next.js (March 2026)
 
-The application has been migrated from a client-side SPA with localStorage to a full-stack Next.js architecture:
+The application was migrated from a client-side SPA with localStorage to a full-stack Next.js architecture:
 
 | Before | After |
 |--------|-------|
@@ -676,34 +873,22 @@ The application has been migrated from a client-side SPA with localStorage to a 
 
 ### Bug Fixes Applied
 
-- ✅ Fixed AuditContext crash with optional chaining for undefined actors
-- ✅ Fixed hydration mismatch in useTheme.ts
-- ✅ Added 'use client' directives to client components
-- ✅ Fixed AdContext infinite loop (useEffect dependency)
-- ✅ Fixed AdminLogin to use NextAuth signIn
-- ✅ Fixed JWT_SESSION_ERROR by stripping JWT to minimal fields (id, role only)
-- ✅ Fixed AdminDashboard TypeError with fallback for undefined eventType
-- ✅ Fixed RBAC permission matrix - Owner-only access for verifications/earnings tabs
-- ✅ Fixed avatar upload API with proper JSON responses
-- ✅ Fixed ImageUploader crash - default images prop to empty array
-- ✅ Fixed CreateListing silent form submission - added map fields to validation schema
-- ✅ Fixed form validation error display with toast notifications
-- ✅ Fixed LocationPicker sync to form's location field
-- ✅ Fixed geolocation error handling with specific user-friendly messages
-
-### New Features Added
-
-#### Location & Map System
-- **Address Autocomplete**: OpenStreetMap Nominatim integration for address search (no API key required)
-- **Geolocation**: "Use my current location" button with reverse geocoding
-- **Privacy Controls**: Toggle to show exact location or general area only
-- **Map Preview**: Embedded OpenStreetMap with expandable view
-- **Auto Region Detection**: Automatically sets region based on selected country
-
-#### Form Improvements
-- **Validation Error Toasts**: Shows specific field errors when form validation fails
-- **Image Upload**: Supports up to 10 images with drag-and-drop, primary image selection, and captions
-- **Location Sync**: LocationPicker automatically syncs coordinates to hidden form fields
+| Issue | Fix |
+|-------|-----|
+| AuditContext crash | Added optional chaining for undefined `log.actor` |
+| Hydration mismatch | Fixed in useTheme.ts |
+| Missing 'use client' | Added directives to client components |
+| AdContext infinite loop | Fixed useEffect dependency |
+| AdminLogin not using NextAuth | Updated to use signIn |
+| JWT_SESSION_ERROR | Stripped JWT to minimal fields (id, role only), fetch rest from DB |
+| AdminDashboard TypeError | Added fallback for undefined `eventType` |
+| RBAC permission bypass | Updated allTabs roles array, Owner-only for verifications/earnings |
+| Avatar upload JSON error | Created proper API route with NextResponse.json() |
+| ImageUploader crash | Default images prop to empty array |
+| Silent form submission | Added map fields to validation schema |
+| No validation feedback | Added error callback with toast notifications |
+| Location field not syncing | Added useEffect to sync locationData to form |
+| Empty geolocation error | Specific error messages based on error.code |
 
 ### Files Changed
 
@@ -711,6 +896,8 @@ The application has been migrated from a client-side SPA with localStorage to a 
 - 3,200+ lines added
 - 1,600+ lines removed
 - 20+ new App Router routes created
+- 13 React contexts created
+- 10+ API endpoints created
 
 ---
 
