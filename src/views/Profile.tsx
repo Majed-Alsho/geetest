@@ -167,14 +167,17 @@ export default function Profile() {
     reader.onload = async () => {
       const base64 = reader.result as string;
       setAvatarPreview(base64);
-      
+
       // Save avatar
       const result = await updateUserProfile({ avatar: base64 });
       if (result.success) {
         toast.success('Avatar updated', { description: 'Your profile picture has been updated.' });
       } else {
-        toast.error('Failed to update avatar');
+        toast.error('Failed to update avatar', { description: result.error || 'Please try again.' });
       }
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read file', { description: 'Please try again with a different image.' });
     };
     reader.readAsDataURL(file);
   };

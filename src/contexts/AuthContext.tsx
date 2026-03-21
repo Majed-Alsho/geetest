@@ -402,6 +402,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(data),
       });
 
+      // Handle non-JSON responses gracefully (e.g., HTML error pages)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response received:', text.substring(0, 200));
+        return { success: false, error: 'Server returned an invalid response. Please try again.' };
+      }
+
       const result = await response.json();
 
       if (!response.ok) {
@@ -435,6 +443,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           newPassword,
         }),
       });
+
+      // Handle non-JSON responses gracefully (e.g., HTML error pages)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response received:', text.substring(0, 200));
+        return { success: false, error: 'Server returned an invalid response. Please try again.' };
+      }
 
       const result = await response.json();
 

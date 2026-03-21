@@ -481,12 +481,12 @@ export default function AdminDashboard() {
     { id: 'listings', label: 'Listings Review', icon: Building2, badge: pendingListings.length, roles: ['admin', 'superadmin', 'owner'] },
     { id: 'ads', label: 'Ads Management', icon: Rocket, badge: adStats.pending, roles: ['superadmin', 'owner'] },
     { id: 'users', label: 'Users', icon: Users, badge: allUsers.length, roles: ['superadmin', 'owner'] },
-    { id: 'verifications', label: 'Verifications', icon: FileCheck, badge: getPendingRequests().length, roles: ['owner'] },
+    { id: 'verifications', label: 'Verifications', icon: FileCheck, badge: getPendingRequests().length, roles: ['superadmin', 'owner'] },
     { id: 'earnings', label: 'Earnings', icon: Wallet, roles: ['owner'] },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['superadmin', 'owner'] },
-    { id: 'security', label: 'Security', icon: Shield, roles: ['superadmin', 'owner'] },
-    { id: 'audit', label: 'Audit Log', icon: FileText, roles: ['superadmin', 'owner'] },
-    { id: 'rateLimits', label: 'Rate Limits', icon: Activity, roles: ['superadmin', 'owner'] },
+    { id: 'security', label: 'Security', icon: Shield, roles: ['owner'] },
+    { id: 'audit', label: 'Audit Log', icon: FileText, roles: ['owner'] },
+    { id: 'rateLimits', label: 'Rate Limits', icon: Activity, roles: ['owner'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin', 'superadmin', 'owner'] },
   ];
 
@@ -1136,13 +1136,22 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Admin Actions */}
-                        {selectedUser.role === 'user' && (
+                        {/* RBAC Safeguard: SuperAdmin cannot edit Owner or SuperAdmin accounts */}
+                        {/* Only Owner can manage SuperAdmin accounts */}
+                        {(selectedUser.role === 'user' || (user?.role === 'owner' && selectedUser.role !== 'user')) && (
                           <div className="border-t border-border pt-4 space-y-3">
                             <h4 className="text-sm font-medium">Admin Actions</h4>
-                            
+
+                            {/* Show warning for protected accounts */}
+                            {selectedUser.role !== 'user' && (
+                              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs">
+                                ⚠️ This account has elevated privileges. Actions are restricted.
+                              </div>
+                            )}
+
                             {/* Suspend/Unsuspend */}
                             {selectedUser.isSuspended ? (
-                              <button 
+                              <button
                                 onClick={() => { unsuspendUser(selectedUser.id); toast.success('User unsuspended'); }}
                                 className="w-full btn-secondary text-green-500"
                               >
@@ -1156,7 +1165,7 @@ export default function AdminDashboard() {
                                   value={suspendReason}
                                   onChange={(e) => setSuspendReason(e.target.value)}
                                 />
-                                <button 
+                                <button
                                   onClick={() => handleSuspendUser(selectedUser.id)}
                                   className="w-full btn-secondary text-red-500"
                                   disabled={!suspendReason.trim()}
@@ -1168,7 +1177,7 @@ export default function AdminDashboard() {
                             )}
 
                             {/* Send Password Reset Link */}
-                            <button 
+                            <button
                               onClick={() => handleSendPasswordReset(selectedUser.id)}
                               className="w-full btn-secondary"
                             >
@@ -1176,14 +1185,31 @@ export default function AdminDashboard() {
                               Send Password Reset Link
                             </button>
 
-                            {/* Delete User */}
-                            <button 
-                              onClick={() => handleDeleteUser(selectedUser.id)}
-                              className="w-full btn-secondary text-red-500"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete User
-                            </button>
+                            {/* Delete User - Only Owner can delete elevated accounts */}
+                            {(selectedUser.role === 'user' || user?.role === 'owner') && (
+                              <button
+                                onClick={() => handleDeleteUser(selectedUser.id)}
+                                className="w-full btn-secondary text-red-500"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete User
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* SuperAdmin viewing Owner/SuperAdmin - Read Only Notice */}
+                        {user?.role === 'superadmin' && (selectedUser.role === 'owner' || selectedUser.role === 'superadmin') && (
+                          <div className="border-t border-border pt-4">
+                            <div className="p-3 rounded-xl bg-secondary/50 text-center">
+                              <Shield className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">
+                                This account has equal or higher privileges.
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Only Owners can manage SuperAdmin accounts.
+                              </p>
+                            </div>
                           </div>
                         )}
                       </div>
