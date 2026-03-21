@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,6 +44,10 @@ const listingSchema = z.object({
   price: z.number().min(1, 'Asking price is required'),
   ebitdaMargin: z.number().min(0).max(100, 'EBITDA margin must be between 0% and 100%'),
   featured: z.boolean().optional(),
+  // Map/location fields
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  showExactLocation: z.boolean().optional().default(false),
 });
 
 type ListingFormData = z.infer<typeof listingSchema>;
@@ -77,6 +81,10 @@ export default function CreateListing() {
       price: existingListing?.price || 0,
       ebitdaMargin: existingListing?.ebitdaMargin || 0,
       featured: existingListing?.featured || false,
+      // Map/location fields
+      latitude: existingListing?.latitude || undefined,
+      longitude: existingListing?.longitude || undefined,
+      showExactLocation: existingListing?.showExactLocation || false,
     },
   });
 
@@ -104,6 +112,17 @@ export default function CreateListing() {
   });
 
   const watchFeatured = form.watch('featured');
+
+  // Sync locationData to form's 'location' field
+  useEffect(() => {
+    if (locationData?.formattedAddress) {
+      form.setValue('location', locationData.formattedAddress, { shouldValidate: true });
+      form.setValue('region', locationData.region, { shouldValidate: true });
+      form.setValue('latitude', locationData.lat);
+      form.setValue('longitude', locationData.lng);
+      form.setValue('showExactLocation', locationData.showExactLocation ?? false);
+    }
+  }, [locationData, form]);
 
   const onSubmit = async (data: ListingFormData) => {
     if (!isAuthenticated || !user) {
@@ -238,7 +257,15 @@ export default function CreateListing() {
             transition={{ delay: 0.1 }}
           >
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+          console.error('Form validation errors:', errors);
+          const errorMessages = Object.entries(errors)
+            .map(([field, error]) => `${field}: ${error.message}`)
+            .join(', ');
+          toast.error('Please fix the following errors', {
+            description: errorMessages || 'Some fields are invalid',
+          });
+        })} className="space-y-6">
                 {/* Images */}
                 <GlassPanel className="p-6">
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">

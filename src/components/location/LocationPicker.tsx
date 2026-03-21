@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 // Types
 export interface LocationData {
   address: string;
+  formattedAddress?: string;
   city: string;
   state?: string;
   postalCode?: string;
@@ -293,6 +294,7 @@ export function LocationPicker({
 
     const locationData: LocationData = {
       address: result.display_name,
+      formattedAddress: result.display_name,
       city,
       state: result.address.state,
       postalCode: result.address.postcode,
@@ -330,6 +332,7 @@ export function LocationPicker({
           
           const locationData: LocationData = {
             address: data.display_name,
+            formattedAddress: data.display_name,
             city: data.address?.city || data.address?.town || data.address?.village || '',
             state: data.address?.state,
             postalCode: data.address?.postcode,
@@ -351,8 +354,15 @@ export function LocationPicker({
         }
       },
       (error) => {
-        console.error('Geolocation error:', error);
-        toast.error('Failed to get your location');
+        console.error('Geolocation error:', error.message, 'Code:', error.code);
+        // Provide specific error messages based on error code
+        const errorMessages: Record<number, string> = {
+          1: 'Location permission denied. Please enable location access in your browser settings.',
+          2: 'Location unavailable. Your position could not be determined.',
+          3: 'Location request timed out. Please try again.',
+        };
+        const errorMessage = errorMessages[error.code] || error.message || 'Failed to get your location';
+        toast.error(errorMessage);
         setIsLocating(false);
       },
       { enableHighAccuracy: true }

@@ -37,7 +37,7 @@ const DEFAULT_MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const DEFAULT_FORMATS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 export function ImageUploader({
-  images,
+  images = [],
   onChange,
   maxImages = DEFAULT_MAX_IMAGES,
   maxSizePerImage = DEFAULT_MAX_SIZE,
