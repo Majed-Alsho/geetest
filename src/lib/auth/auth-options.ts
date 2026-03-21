@@ -106,24 +106,41 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
+      // Initial sign in - keep token MINIMAL to stay under 4KB cookie limit
       if (user) {
+        // Only store essential data in JWT - id and role are critical
+        // Strip out clientNumber and other non-essential fields to prevent cookie overflow
         token.id = user.id;
         token.role = user.role;
-        token.clientNumber = user.clientNumber;
+        // IMPORTANT: Do NOT store clientNumber, name, email in token - fetch from DB in session callback
       }
-      
+
       if (trigger === "update" && session) {
         token.name = session.name;
         token.email = session.email;
       }
-      
+
       return token;
     },
     async session({ session, token }) {
+      // Reconstruct session from minimal JWT token
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-        session.user.clientNumber = token.clientNumber as string | undefined;
+        // Fetch additional user data from DB instead of storing in token
+        // This keeps the JWT small and prevents 4KB cookie limit issues
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { id: token.id as string },
+            select: { clientNumber: true, name: true }
+          });
+          if (dbUser) {
+            session.user.clientNumber = dbUser.clientNumber;
+            session.user.name = dbUser.name;
+          }
+        } catch {
+          // Gracefully handle DB errors - session still works with minimal data
+        }
       }
       return session;
     },
