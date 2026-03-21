@@ -681,12 +681,35 @@ The application has been migrated from a client-side SPA with localStorage to a 
 - ✅ Added 'use client' directives to client components
 - ✅ Fixed AdContext infinite loop (useEffect dependency)
 - ✅ Fixed AdminLogin to use NextAuth signIn
+- ✅ Fixed JWT_SESSION_ERROR by stripping JWT to minimal fields (id, role only)
+- ✅ Fixed AdminDashboard TypeError with fallback for undefined eventType
+- ✅ Fixed RBAC permission matrix - Owner-only access for verifications/earnings tabs
+- ✅ Fixed avatar upload API with proper JSON responses
+- ✅ Fixed ImageUploader crash - default images prop to empty array
+- ✅ Fixed CreateListing silent form submission - added map fields to validation schema
+- ✅ Fixed form validation error display with toast notifications
+- ✅ Fixed LocationPicker sync to form's location field
+- ✅ Fixed geolocation error handling with specific user-friendly messages
+
+### New Features Added
+
+#### Location & Map System
+- **Address Autocomplete**: OpenStreetMap Nominatim integration for address search (no API key required)
+- **Geolocation**: "Use my current location" button with reverse geocoding
+- **Privacy Controls**: Toggle to show exact location or general area only
+- **Map Preview**: Embedded OpenStreetMap with expandable view
+- **Auto Region Detection**: Automatically sets region based on selected country
+
+#### Form Improvements
+- **Validation Error Toasts**: Shows specific field errors when form validation fails
+- **Image Upload**: Supports up to 10 images with drag-and-drop, primary image selection, and captions
+- **Location Sync**: LocationPicker automatically syncs coordinates to hidden form fields
 
 ### Files Changed
 
-- 71 files modified
-- 2,900+ lines added
-- 1,500+ lines removed
+- 75+ files modified
+- 3,200+ lines added
+- 1,600+ lines removed
 - 20+ new App Router routes created
 
 ---
