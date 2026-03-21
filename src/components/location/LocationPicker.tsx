@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MapPin, Search, Loader2, X, Crosshair, 
-  ChevronDown, Map, Maximize2, Minimize2
+  ChevronDown, Map, Maximize2, Minimize2, Eye, EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ export interface LocationData {
   lat: number;
   lng: number;
   region: string;
+  showExactLocation?: boolean;
 }
 
 interface LocationPickerProps {
@@ -422,6 +423,40 @@ export function LocationPicker({
             isExpanded={isExpanded}
             onToggleExpand={() => setIsExpanded(!isExpanded)}
           />
+
+          {/* Privacy Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border">
+            <div className="flex items-center gap-3">
+              {value.showExactLocation ? (
+                <Eye className="w-5 h-5 text-accent" />
+              ) : (
+                <EyeOff className="w-5 h-5 text-muted-foreground" />
+              )}
+              <div>
+                <p className="text-sm font-medium">Show Exact Location</p>
+                <p className="text-xs text-muted-foreground">
+                  {value.showExactLocation 
+                    ? 'Your precise location will be visible to buyers'
+                    : 'Only the general area will be shown to protect your privacy'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                onChange({ ...value, showExactLocation: !value.showExactLocation });
+              }}
+              className={cn(
+                "relative w-12 h-6 rounded-full transition-colors",
+                value.showExactLocation ? "bg-accent" : "bg-secondary"
+              )}
+            >
+              <motion.div
+                className="absolute top-1 w-4 h-4 rounded-full bg-white shadow"
+                animate={{ left: value.showExactLocation ? '26px' : '4px' }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            </button>
+          </div>
 
           {/* Coordinates */}
           <p className="text-xs text-muted-foreground text-center">

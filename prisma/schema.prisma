@@ -124,7 +124,12 @@ model Listing {
   industry        String?
   location        String
   region          String
-  
+
+  // Location coordinates for map display
+  latitude        Float?
+  longitude       Float?
+  showExactLocation Boolean       @default(false)
+
   // Financials
   askingPrice     Float
   revenue         Float

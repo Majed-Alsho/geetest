@@ -139,6 +139,10 @@ export default function CreateListing() {
           postalCode: locationData.postalCode,
           formattedAddress: locationData.formattedAddress,
         } : undefined,
+        // Location privacy settings
+        latitude: locationData?.lat,
+        longitude: locationData?.lng,
+        showExactLocation: locationData?.showExactLocation ?? false,
       };
       
       if (isEditing && existingListing) {

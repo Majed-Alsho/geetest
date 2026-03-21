@@ -103,8 +103,10 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
     const allowedFields = [
       "title", "description", "category", "industry", "location", "region",
-      "askingPrice", "revenue", "ebitda", "growthRate", "employees", 
-      "yearEstablished", "images", "ndaRequired"
+      "askingPrice", "revenue", "ebitda", "growthRate", "employees",
+      "yearEstablished", "images", "ndaRequired",
+      // Location coordinates
+      "latitude", "longitude", "showExactLocation"
     ];
 
     for (const field of allowedFields) {

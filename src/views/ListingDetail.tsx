@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { 
   MapPin, 
   Users, 
@@ -34,6 +35,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useApiListing } from '@/hooks/useApi';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+// Dynamic import for ListingMap to avoid SSR issues with Leaflet
+const ListingMap = dynamic(
+  () => import('@/components/marketplace/ListingMap').then(mod => mod.default),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 rounded-xl bg-secondary/30 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+);
 
 export default function ListingDetail() {
   const params = useParams();
@@ -219,6 +233,22 @@ export default function ListingDetail() {
                   <span className="font-semibold">{listing.employees}+ Employees</span>
                 </div>
               </div>
+
+              {/* Location Map */}
+              {(listing.latitude || listing.longitude) && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Business Location
+                  </h3>
+                  <ListingMap
+                    latitude={listing.latitude}
+                    longitude={listing.longitude}
+                    showExactLocation={listing.showExactLocation}
+                    locationName={listing.location}
+                  />
+                </div>
+              )}
 
               {/* Listing Actions */}
               <ListingActions listing={listing} showAnalytics />

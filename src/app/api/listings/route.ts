@@ -78,3 +78,72 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// POST /api/listings - Create a new listing
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: { message: "Unauthorized" } },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+
+    // Validate required fields
+    const requiredFields = ["title", "description", "category", "location", "region", "askingPrice", "revenue"];
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        return NextResponse.json(
+          { success: false, error: { message: `Missing required field: ${field}` } },
+          { status: 400 }
+        );
+      }
+    }
+
+    const listing = await db.listing.create({
+      data: {
+        title: body.title,
+        description: body.description,
+        category: body.category,
+        industry: body.industry || null,
+        location: body.location,
+        region: body.region,
+        // Location coordinates
+        latitude: body.latitude ? parseFloat(body.latitude) : null,
+        longitude: body.longitude ? parseFloat(body.longitude) : null,
+        showExactLocation: body.showExactLocation === true,
+        // Financials
+        askingPrice: parseFloat(body.askingPrice),
+        revenue: parseFloat(body.revenue),
+        ebitda: body.ebitda ? parseFloat(body.ebitda) : null,
+        growthRate: body.growthRate ? parseFloat(body.growthRate) : null,
+        employees: body.employees ? parseInt(body.employees) : null,
+        yearEstablished: body.yearEstablished ? parseInt(body.yearEstablished) : null,
+        // Status
+        status: "PENDING",
+        // Relations
+        sellerId: session.user.id,
+      },
+      include: {
+        seller: {
+          select: { id: true, name: true, company: true },
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: listing,
+    });
+  } catch (error) {
+    console.error("Listing creation error:", error);
+    return NextResponse.json(
+      { success: false, error: { message: "Failed to create listing" } },
+      { status: 500 }
+    );
+  }
+}
