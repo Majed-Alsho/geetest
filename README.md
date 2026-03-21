@@ -516,9 +516,9 @@ User (Lowest)
 | Ads management | ❌ | ❌ | ✅ | ✅ |
 | Users management | ❌ | ❌ | ✅ | ✅ |
 | Analytics | ❌ | ❌ | ✅ | ✅ |
-| Security settings | ❌ | ❌ | ✅ | ✅ |
-| Audit logs | ❌ | ❌ | ✅ | ✅ |
-| Rate limits | ❌ | ❌ | ✅ | ✅ |
+| Security settings | ❌ | ❌ | ❌ | ✅ |
+| Audit logs | ❌ | ❌ | ❌ | ✅ |
+| Rate limits | ❌ | ❌ | ❌ | ✅ |
 | Verifications tab | ❌ | ❌ | ❌ | ✅ |
 | Earnings tab | ❌ | ❌ | ❌ | ✅ |
 
@@ -539,9 +539,9 @@ const allTabs = [
   { id: 'ads', label: 'Ads Management', roles: ['superadmin', 'owner'] },
   { id: 'users', label: 'Users', roles: ['superadmin', 'owner'] },
   { id: 'analytics', label: 'Analytics', roles: ['superadmin', 'owner'] },
-  { id: 'security', label: 'Security', roles: ['superadmin', 'owner'] },
-  { id: 'audit', label: 'Audit Logs', roles: ['superadmin', 'owner'] },
-  { id: 'rate-limits', label: 'Rate Limits', roles: ['superadmin', 'owner'] },
+  { id: 'security', label: 'Security', roles: ['owner'] },
+  { id: 'audit', label: 'Audit Logs', roles: ['owner'] },
+  { id: 'rate-limits', label: 'Rate Limits', roles: ['owner'] },
   { id: 'verifications', label: 'Verifications', roles: ['owner'] },
   { id: 'earnings', label: 'Earnings', roles: ['owner'] },
 ];
@@ -586,21 +586,21 @@ The admin dashboard is a comprehensive control panel with role-based tab visibil
 - Revenue tracking
 - Geographic distribution
 
-### Security Tab (SuperAdmin+)
+### Security Tab (Owner Only)
 - Two-factor authentication settings
 - Session management
 - Security alerts
 - IP allowlisting
 - Login attempt monitoring
 
-### Audit Logs Tab (SuperAdmin+)
+### Audit Logs Tab (Owner Only)
 - Complete activity history
 - Filter by user, action, date
 - Export audit reports
 - Search functionality
 - Event details with actor information
 
-### Rate Limits Tab (SuperAdmin+)
+### Rate Limits Tab (Owner Only)
 - View current rate limits
 - Configure limit thresholds
 - View blocked requests
