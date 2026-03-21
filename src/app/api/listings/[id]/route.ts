@@ -132,6 +132,39 @@ export async function PATCH(
       },
     });
 
+    // Send notification to seller when listing status changes
+    if (body.status && body.status !== listing.status) {
+      try {
+        let notificationType = "";
+        let notificationTitle = "";
+        let notificationMessage = "";
+
+        if (body.status === "APPROVED") {
+          notificationType = "LISTING_APPROVED";
+          notificationTitle = "Listing Approved!";
+          notificationMessage = `Your listing "${listing.title}" has been approved and is now live.`;
+        } else if (body.status === "REJECTED") {
+          notificationType = "LISTING_REJECTED";
+          notificationTitle = "Listing Rejected";
+          notificationMessage = `Your listing "${listing.title}" has been rejected. Please review and resubmit.`;
+        }
+
+        if (notificationType) {
+          await db.notification.create({
+            data: {
+              userId: listing.sellerId,
+              type: notificationType as any,
+              title: notificationTitle,
+              message: notificationMessage,
+              link: `/listings/${id}`,
+            },
+          });
+        }
+      } catch (notificationError) {
+        console.error("Failed to create status notification:", notificationError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: updated,

@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
         include: {
           seller: {
-            select: { id: true, name: true, company: true },
+            select: { id: true, name: true, company: true, avatar: true },
           },
         },
       }),
@@ -123,6 +123,8 @@ export async function POST(request: NextRequest) {
         growthRate: body.growthRate ? parseFloat(body.growthRate) : null,
         employees: body.employees ? parseInt(body.employees) : null,
         yearEstablished: body.yearEstablished ? parseInt(body.yearEstablished) : null,
+        // Images - store as JSON array
+        images: body.images && body.images.length > 0 ? JSON.stringify(body.images) : null,
         // Status
         status: "PENDING",
         // Relations
@@ -134,6 +136,30 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Create notifications for all admins about the new listing
+    try {
+      const admins = await db.user.findMany({
+        where: {
+          role: { in: ["ADMIN", "SUPERADMIN", "OWNER"] },
+        },
+        select: { id: true },
+      });
+
+      // Create notification records for each admin
+      await db.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          type: "LISTING_PENDING",
+          title: "New Listing Submitted",
+          message: `A new listing "${body.title}" has been submitted for review.`,
+          link: "/admin",
+        })),
+      });
+    } catch (notificationError) {
+      // Log but don't fail the request
+      console.error("Failed to create notifications:", notificationError);
+    }
 
     return NextResponse.json({
       success: true,

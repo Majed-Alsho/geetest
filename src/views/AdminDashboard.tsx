@@ -17,6 +17,7 @@ import { useAuth, PasswordResetToken } from '@/contexts/AuthContext';
 import { useSupport } from '@/contexts/SupportContext';
 import { useAds } from '@/contexts/AdContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useListings } from '@/contexts/ListingContext';
 import { useEarnings } from '@/contexts/EarningsContext';
 import { useVerification } from '@/contexts/VerificationContext';
@@ -928,6 +929,16 @@ export default function AdminDashboard() {
                         )}
 
                         <div className="border-t border-border pt-4 space-y-3">
+                          {/* View Public Page Button */}
+                          <Link
+                            href={`/listings/${selectedListing.id}`}
+                            target="_blank"
+                            className="btn-secondary w-full justify-center"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Public Page
+                          </Link>
+                          
                           {/* Only SuperAdmin and Owner can approve/reject listings */}
                           {isSuperAdmin ? (
                             <>

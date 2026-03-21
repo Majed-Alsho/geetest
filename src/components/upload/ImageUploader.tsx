@@ -63,8 +63,40 @@ export function ImageUploader({
   const processFile = async (file: File): Promise<ImageFile> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const id = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Try to upload the file to the server
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data.url) {
+              resolve({
+                id,
+                url: result.data.url, // Use server URL
+                file,
+                caption: '',
+                isPrimary: false,
+                order: images.length,
+                size: file.size,
+                uploaded: true,
+              });
+              return;
+            }
+          }
+        } catch (uploadError) {
+          console.error('Upload failed, using local preview:', uploadError);
+        }
+        
+        // Fallback to base64 for preview if upload fails
         resolve({
           id,
           url: e.target?.result as string,
@@ -441,7 +473,29 @@ export function AvatarUploader({
       return;
     }
 
-    // Convert to base64
+    // Try to upload to server first
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data.url) {
+          onChange(result.data.url);
+          toast.success('Avatar uploaded successfully');
+          return;
+        }
+      }
+    } catch (uploadError) {
+      console.error('Upload failed, using local preview:', uploadError);
+    }
+
+    // Fallback to base64
     const reader = new FileReader();
     reader.onload = (e) => {
       onChange(e.target?.result as string);

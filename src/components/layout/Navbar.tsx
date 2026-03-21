@@ -119,7 +119,15 @@ export function Navbar() {
                     href="/profile"
                     className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
                   >
-                    <User className="w-4 h-4 text-accent" />
+                    {user?.avatar ? (
+                      <img 
+                        src={user.avatar} 
+                        alt={user.name || 'User'} 
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-4 h-4 text-accent" />
+                    )}
                     <span className="text-sm font-medium max-w-[120px] truncate">
                       {user?.name}
                     </span>
