@@ -160,7 +160,9 @@ export const authOptions: NextAuthOptions = {
       }
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  // Hardcoded fallback secret to prevent decryption failures when env is missing
+  // In production, NEXTAUTH_SECRET should always be set in environment
+  secret: process.env.NEXTAUTH_SECRET || 'gee-nextauth-secret-fallback-key-2024-secure-random-string-32chars',
   debug: true, // Enable debug mode
 };
 

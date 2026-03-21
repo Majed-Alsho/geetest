@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { authOptions } from "@/lib/auth/auth-options";
 import Profile from '@/views/Profile';
 import { Layout } from '@/components/layout/Layout';
@@ -18,8 +19,13 @@ export default async function ProfilePage() {
   } catch (error) {
     // JWT_SESSION_ERROR: decryption operation failed
     // This happens when cookie is corrupted or exceeds size limit
-    // Log the error and treat as unauthenticated - user will be redirected to login
     console.error('[ProfilePage] Session error:', error instanceof Error ? error.message : 'Unknown error');
+    // Forcefully delete corrupted NextAuth session cookies
+    try {
+      const cookieStore = await cookies();
+      cookieStore.delete('next-auth.session-token');
+      cookieStore.delete('__Secure-next-auth.session-token');
+    } catch {}
     // Clear any corrupted cookies by redirecting to login with a fresh state
     redirect('/login?error=session_expired');
   }
