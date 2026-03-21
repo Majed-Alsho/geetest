@@ -333,10 +333,10 @@ export function BulkListingImport({ onImport, categories, regions }: BulkImportP
                       <td className="p-3">{row.category || '-'}</td>
                       <td className="p-3">{row.region || '-'}</td>
                       <td className="p-3 text-right">
-                        {row.price ? `$${row.price.toLocaleString()}` : '-'}
+                        {row.price ? `$${row.price.toLocaleString('en-US')}` : '-'}
                       </td>
                       <td className="p-3 text-right">
-                        {row.revenue ? `$${row.revenue.toLocaleString()}` : '-'}
+                        {row.revenue ? `$${row.revenue.toLocaleString('en-US')}` : '-'}
                       </td>
                       <td className="p-3 text-center">
                         {row.status === 'valid' ? (

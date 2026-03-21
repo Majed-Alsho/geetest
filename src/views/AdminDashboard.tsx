@@ -670,7 +670,7 @@ export default function AdminDashboard() {
                                 {ticket.userName} • Client: {ticket.clientNumber}
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(ticket.createdAt).toLocaleString()}
+                                {new Date(ticket.createdAt).toLocaleString('en-US')}
                               </p>
                             </div>
                             <div className="text-right">
@@ -737,7 +737,7 @@ export default function AdminDashboard() {
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="font-medium">{msg.senderName}</span>
                                   <span className="text-xs text-muted-foreground">
-                                    {new Date(msg.createdAt).toLocaleString()}
+                                    {new Date(msg.createdAt).toLocaleString('en-US')}
                                   </span>
                                 </div>
                                 <p>{msg.content}</p>
@@ -1428,7 +1428,7 @@ export default function AdminDashboard() {
                           )}
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {new Date(log.timestamp).toLocaleString()}
+                          {new Date(log.timestamp).toLocaleString('en-US')}
                         </span>
                       </div>
                     ))}
@@ -1876,7 +1876,7 @@ export default function AdminDashboard() {
                         <tr key={log.id} className="hover:bg-secondary/30">
                           <td className="p-3">
                             <span className="font-mono text-xs">
-                              {new Date(log.timestamp).toLocaleString()}
+                              {new Date(log.timestamp).toLocaleString('en-US')}
                             </span>
                           </td>
                           <td className="p-3">
@@ -2002,7 +2002,7 @@ export default function AdminDashboard() {
                       ].map((limit, i) => (
                         <tr key={i} className="hover:bg-secondary/30">
                           <td className="p-3 font-medium">{limit.type}</td>
-                          <td className="p-3">{limit.max.toLocaleString()}</td>
+                          <td className="p-3">{limit.max.toLocaleString('en-US')}</td>
                           <td className="p-3">{limit.window}</td>
                           <td className="p-3">{limit.block}</td>
                           <td className="p-3">
@@ -2453,7 +2453,7 @@ export default function AdminDashboard() {
                               <p className="text-xs text-muted-foreground">Reviewed by</p>
                               <p className="font-medium">{selectedVerification.reviewedByName}</p>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(selectedVerification.reviewedAt).toLocaleString()}
+                                {new Date(selectedVerification.reviewedAt).toLocaleString('en-US')}
                               </p>
                             </div>
                             {selectedVerification.adminNotes && (

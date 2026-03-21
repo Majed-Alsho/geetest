@@ -252,7 +252,7 @@ export function ListingCard({
             {listing.analytics && (
               <div className="flex items-center gap-1">
                 <Eye className="w-3.5 h-3.5" />
-                <span>{listing.analytics.views.toLocaleString()} views</span>
+                <span>{listing.analytics.views.toLocaleString('en-US')} views</span>
               </div>
             )}
           </div>

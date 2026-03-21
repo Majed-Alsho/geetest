@@ -175,7 +175,7 @@ export function ListingActions({ listing, showAnalytics = false }: ListingAction
           <>
             <div className="flex items-center gap-1.5">
               <Eye className="w-4 h-4" />
-              <span>{listing.analytics.views.toLocaleString()} views</span>
+              <span>{listing.analytics.views.toLocaleString('en-US')} views</span>
             </div>
             {isAdmin && (
               <>

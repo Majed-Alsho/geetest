@@ -195,7 +195,7 @@ export function UserPromotions({ onPromoteNew }: UserPromotionsProps) {
                           <>
                             <Clock className="w-4 h-4 text-blue-500" />
                             <span className="text-sm text-blue-500">
-                              Payment deadline: {new Date(ad.paymentDeadline).toLocaleString()}
+                              Payment deadline: {new Date(ad.paymentDeadline).toLocaleString('en-US')}
                             </span>
                           </>
                         ) : (

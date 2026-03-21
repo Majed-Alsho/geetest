@@ -69,7 +69,7 @@ function MetricCard({
       </div>
       <p className="text-sm text-muted-foreground mb-1">{title}</p>
       <p className="text-2xl font-bold">
-        {typeof value === 'number' ? value.toLocaleString() : value}
+        {typeof value === 'number' ? value.toLocaleString('en-US') : value}
         {unit && <span className="text-sm text-muted-foreground ml-1">{unit}</span>}
       </p>
       {subtitle && (
@@ -629,10 +629,10 @@ export default function InvestorProfile() {
                       <div key={i} className="p-4 rounded-xl bg-secondary/30 border border-border/50">
                         <h4 className="font-semibold mb-2">{cost.service}</h4>
                         <p className="text-2xl font-bold text-accent mb-1">
-                          ${cost.monthlyCost.average.toLocaleString()}/mo
+                          ${cost.monthlyCost.average.toLocaleString('en-US')}/mo
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Range: ${cost.monthlyCost.min.toLocaleString()} - ${cost.monthlyCost.max.toLocaleString()}
+                          Range: ${cost.monthlyCost.min.toLocaleString('en-US')} - ${cost.monthlyCost.max.toLocaleString('en-US')}
                         </p>
                       </div>
                     ))}

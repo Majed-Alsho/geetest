@@ -264,7 +264,7 @@ export function WatchlistWithAlerts({ listings, onViewListing }: WatchlistWithAl
                         <span>
                           {ALERT_CONDITION_LABELS[alert.type]}
                           {alert.type === 'percentage_drop' ? ` ${alert.percentageThreshold}%` : 
-                           alert.type !== 'any_change' ? ` $${alert.targetValue.toLocaleString()}` : ''}
+                           alert.type !== 'any_change' ? ` $${alert.targetValue.toLocaleString('en-US')}` : ''}
                         </span>
                         <button
                           onClick={() => handleRemoveAlert(item.listingId, alert.id)}
