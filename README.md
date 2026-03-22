@@ -890,6 +890,45 @@ The application was migrated from a client-side SPA with localStorage to a full-
 | Location field not syncing | Added useEffect to sync locationData to form |
 | Empty geolocation error | Specific error messages based on error.code |
 
+### Bug Fixes Applied (March 2026 - Session 2)
+
+| Issue | Fix |
+|-------|-----|
+| Hydration mismatch in ListingCard | Added `'en-US'` locale to all `toLocaleString()` calls across 8 files |
+| Admin approval not persisting | Updated AdminDashboard to call `/api/listings/[id]` API instead of only using context |
+| Fatal React toast crash | Added defensive error handling to safely extract error messages from objects |
+| Prisma "No record found" error | Changed user lookup from `session.user.id` to `session.user.email` which is reliable |
+| Next.js 16 async params | Updated `/api/users/[id]/listings` and `/api/users/[id]/public` to use `Promise<{ id: string }>` |
+| Generic error messages | API routes now return actual error messages for easier debugging |
+| Zod validation rejecting empty strings | Updated `profileSchema` to accept empty strings using `.or(z.literal(''))` |
+| Avatar storing as massive base64 | Avatar now uploads to `/api/upload` first, then saves URL to profile |
+| Partial updates overwriting data | Profile route now only updates fields explicitly provided in request body |
+| API route targeting wrong endpoint | Changed all self-user actions from `/api/users/${user.id}` to `/api/users/profile` |
+
+### API Routes Added/Enhanced
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/users/profile` | GET | Get current user profile (email-based lookup) |
+| `/api/users/profile` | PUT/PATCH | Update profile with partial updates and action handlers |
+| `/api/upload` | POST | Upload images to server, returns public URL |
+| `/api/upload` | DELETE | Delete uploaded files |
+
+### Profile API Actions
+
+The `/api/users/profile` endpoint now handles these actions via `body.action`:
+
+| Action | Description |
+|--------|-------------|
+| `changePassword` | Change user password with current password verification |
+| `saveListing` | Add a listing to user's saved list |
+| `unsaveListing` | Remove a listing from saved list |
+| `addAlert` | Add a search alert |
+| `removeAlert` | Remove a search alert by index |
+| `enable2FA` | Enable two-factor authentication |
+| `disable2FA` | Disable two-factor authentication |
+| `exportData` | Export user data (GDPR compliance) |
+
 ### Files Changed
 
 - 75+ files modified
