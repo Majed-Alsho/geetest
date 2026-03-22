@@ -954,11 +954,32 @@ export default function AdminDashboard() {
                               </div>
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => {
-                                    approveListing(selectedListing.id);
-                                    auditLog('ADMIN_ACTION', { action: 'approve_listing', listingId: selectedListing.id, title: selectedListing.title }, { userId: user?.id, userEmail: user?.email, severity: 'info' });
-                                    toast.success('Listing approved');
-                                    setSelectedListing(null);
+                                  onClick={async () => {
+                                    try {
+                                      // Call API to update database with APPROVED status (uppercase for Prisma enum)
+                                      const response = await fetch(`/api/listings/${selectedListing.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ 
+                                          status: 'APPROVED',
+                                          isVerified: true 
+                                        }),
+                                      });
+                                      
+                                      if (response.ok) {
+                                        // Also update local context
+                                        approveListing(selectedListing.id);
+                                        auditLog('ADMIN_ACTION', { action: 'approve_listing', listingId: selectedListing.id, title: selectedListing.title }, { userId: user?.id, userEmail: user?.email, severity: 'info' });
+                                        toast.success('Listing approved and now visible in marketplace');
+                                        setSelectedListing(null);
+                                      } else {
+                                        const errorData = await response.json();
+                                        toast.error(errorData?.error?.message || 'Failed to approve listing');
+                                      }
+                                    } catch (err) {
+                                      console.error('Approval error:', err);
+                                      toast.error('Failed to approve listing. Please try again.');
+                                    }
                                   }}
                                   className="btn-accent flex-1"
                                 >
@@ -966,16 +987,37 @@ export default function AdminDashboard() {
                                   Approve
                                 </button>
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     if (!listingRejectReason.trim()) {
                                       toast.error('Please provide a rejection reason');
                                       return;
                                     }
-                                    rejectListing(selectedListing.id, listingRejectReason);
-                                    auditLog('ADMIN_ACTION', { action: 'reject_listing', listingId: selectedListing.id, reason: listingRejectReason }, { userId: user?.id, userEmail: user?.email, severity: 'warning' });
-                                    toast.success('Listing rejected');
-                                    setSelectedListing(null);
-                                    setListingRejectReason('');
+                                    try {
+                                      // Call API to update database with REJECTED status
+                                      const response = await fetch(`/api/listings/${selectedListing.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ 
+                                          status: 'REJECTED',
+                                          rejectionReason: listingRejectReason 
+                                        }),
+                                      });
+                                      
+                                      if (response.ok) {
+                                        // Also update local context
+                                        rejectListing(selectedListing.id, listingRejectReason);
+                                        auditLog('ADMIN_ACTION', { action: 'reject_listing', listingId: selectedListing.id, reason: listingRejectReason }, { userId: user?.id, userEmail: user?.email, severity: 'warning' });
+                                        toast.success('Listing rejected');
+                                        setSelectedListing(null);
+                                        setListingRejectReason('');
+                                      } else {
+                                        const errorData = await response.json();
+                                        toast.error(errorData?.error?.message || 'Failed to reject listing');
+                                      }
+                                    } catch (err) {
+                                      console.error('Rejection error:', err);
+                                      toast.error('Failed to reject listing. Please try again.');
+                                    }
                                   }}
                                   className="btn-secondary text-red-500"
                                 >

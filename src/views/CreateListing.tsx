@@ -134,7 +134,89 @@ export default function CreateListing() {
     setIsSubmitting(true);
     
     try {
-      // Create listing using the context - this will persist to localStorage
+      // Prepare listing data for API
+      const listingPayload = {
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        region: data.region,
+        location: data.location,
+        askingPrice: data.price,
+        revenue: data.revenue,
+        ebitda: data.revenue * (data.ebitdaMargin / 100),
+        growthRate: data.growthYoY,
+        employees: data.employees,
+        yearEstablished: new Date().getFullYear() - 5, // Default
+        images: images.length > 0 ? images.map(img => img.url) : null,
+        latitude: locationData?.lat || null,
+        longitude: locationData?.lng || null,
+        showExactLocation: locationData?.showExactLocation ?? false,
+      };
+      
+      // Handle edit mode
+      if (isEditing && existingListing) {
+        const response = await fetch(`/api/listings/${existingListing.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(listingPayload),
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result?.error?.message || 'Failed to update listing');
+        }
+        
+        // Also update local context
+        const listingInput: ListingInput = {
+          title: data.title,
+          category: data.category as any,
+          region: data.region as any,
+          location: data.location,
+          description: data.description,
+          highlights: data.highlights.split('\n').filter(h => h.trim()),
+          revenue: data.revenue,
+          growthYoY: data.growthYoY,
+          employees: data.employees,
+          price: data.price,
+          ebitdaMargin: data.ebitdaMargin,
+          images: images.length > 0 ? images : undefined,
+          coordinates: locationData ? { lat: locationData.lat, lng: locationData.lng } : undefined,
+          address: locationData ? {
+            city: locationData.city,
+            country: locationData.country,
+            countryCode: locationData.countryCode,
+            state: locationData.state,
+            postalCode: locationData.postalCode,
+            formattedAddress: locationData.formattedAddress,
+          } : undefined,
+          latitude: locationData?.lat,
+          longitude: locationData?.lng,
+          showExactLocation: locationData?.showExactLocation ?? false,
+        };
+        
+        await updateListing(existingListing.id, listingInput, user.id);
+        toast.success('Listing updated!', {
+          description: `Your listing "${data.title}" has been updated.`,
+        });
+        router.push('/profile');
+        return;
+      }
+      
+      // Call API to create listing in database
+      const response = await fetch('/api/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(listingPayload),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result?.error?.message || 'Failed to create listing');
+      }
+      
+      // Also create in local context for immediate feedback
       const listingInput: ListingInput = {
         title: data.title,
         category: data.category as any,
@@ -147,7 +229,6 @@ export default function CreateListing() {
         employees: data.employees,
         price: data.price,
         ebitdaMargin: data.ebitdaMargin,
-        // New fields
         images: images.length > 0 ? images : undefined,
         coordinates: locationData ? { lat: locationData.lat, lng: locationData.lng } : undefined,
         address: locationData ? {
@@ -158,24 +239,10 @@ export default function CreateListing() {
           postalCode: locationData.postalCode,
           formattedAddress: locationData.formattedAddress,
         } : undefined,
-        // Location privacy settings
         latitude: locationData?.lat,
         longitude: locationData?.lng,
         showExactLocation: locationData?.showExactLocation ?? false,
       };
-      
-      if (isEditing && existingListing) {
-        const result = await updateListing(existingListing.id, listingInput, user.id);
-        if (result.success) {
-          toast.success('Listing updated!', {
-            description: `Your listing "${data.title}" has been updated.`,
-          });
-          router.push('/profile');
-        } else {
-          toast.error('Update failed', { description: result.error });
-        }
-        return;
-      }
       
       const newListing = await createListing(listingInput, user.id);
       
@@ -198,8 +265,9 @@ export default function CreateListing() {
       router.push('/profile');
     } catch (error) {
       console.error('Error creating listing:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Please try again later.';
       toast.error('Failed to create listing', {
-        description: 'Please try again later.',
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
