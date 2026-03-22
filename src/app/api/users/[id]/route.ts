@@ -192,10 +192,12 @@ export async function PATCH(
       data: updated,
     });
   } catch (error) {
-    console.error("User update error:", error);
+    console.error('USER UPDATE ERROR:', error);
+    // Return the actual error message for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update user';
     return NextResponse.json(
-      { success: false, error: { message: "Failed to update user" } },
-      { status: 500 }
+      { success: false, error: { message: errorMessage } },
+      { status: 400 }
     );
   }
 }

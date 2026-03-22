@@ -282,7 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -308,7 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -336,7 +336,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -359,7 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -396,7 +396,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      // Use the dedicated profile route which handles email-based lookup
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -413,11 +414,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to update profile' };
+        // Handle both string errors and object errors with message property
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to update profile');
+        return { success: false, error: errorMessage };
       }
 
-      // Update local state
-      setUser({ ...user, ...data });
+      // Update local state with the response data
+      if (result.data) {
+        setUser({ ...user, ...result.data });
+      } else {
+        setUser({ ...user, ...data });
+      }
       await update();
 
       return { success: true };
@@ -434,7 +443,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      // Use the dedicated profile route which handles email-based lookup
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -455,7 +465,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to change password' };
+        // Handle both string errors and object errors with message property
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to change password');
+        return { success: false, error: errorMessage };
       }
 
       return { success: true };
@@ -573,7 +587,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to reset password' };
+        // Handle both string errors and object errors with message property
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to reset password');
+        return { success: false, error: errorMessage };
       }
 
       return { success: true };
@@ -594,11 +612,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch(`/api/users/${user.id}/export`);
+      const response = await fetch('/api/users/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'exportData' }),
+      });
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to export data' };
+        // Handle both string errors and object errors with message property
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to export data');
+        return { success: false, error: errorMessage };
       }
 
       return { success: true, data: JSON.stringify(result.data, null, 2) };
@@ -629,7 +655,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -642,7 +668,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to enable 2FA' };
+        // Handle both string errors and object errors with message property
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to enable 2FA');
+        return { success: false, error: errorMessage };
       }
 
       setUser({ ...user, twoFactorEnabled: true, twoFactorSecret: secret });
@@ -659,7 +689,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'disable2FA' }),
@@ -668,7 +698,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to disable 2FA' };
+        // Handle both string errors and object errors with message property
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to disable 2FA');
+        return { success: false, error: errorMessage };
       }
 
       setUser({ ...user, twoFactorEnabled: false, twoFactorSecret: undefined });
@@ -705,7 +739,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to revoke session' };
+        // Handle both string errors and object errors with message property
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to revoke session');
+        return { success: false, error: errorMessage };
       }
 
       return { success: true };
@@ -724,7 +762,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to revoke sessions' };
+        // Handle both string errors and object errors with message property
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to revoke sessions');
+        return { success: false, error: errorMessage };
       }
 
       return { success: true };

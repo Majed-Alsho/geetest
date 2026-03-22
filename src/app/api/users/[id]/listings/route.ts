@@ -4,10 +4,10 @@ import { db } from "@/lib/db";
 // GET /api/users/[id]/listings - Get user's public listings
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const listings = await db.listing.findMany({
       where: {

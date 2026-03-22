@@ -63,12 +63,12 @@ import { UserPromotions } from '@/components/promote/UserPromotions';
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
-  bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
-  phone: z.string().max(20).optional(),
+  bio: z.string().max(500, 'Bio must be less than 500 characters').optional().or(z.literal('')),
+  phone: z.string().max(20).optional().or(z.literal('')),
   website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  company: z.string().max(100).optional(),
-  jobTitle: z.string().max(100).optional(),
-  location: z.string().max(200).optional(),
+  company: z.string().max(100).optional().or(z.literal('')),
+  jobTitle: z.string().max(100).optional().or(z.literal('')),
+  location: z.string().max(200).optional().or(z.literal('')),
   linkedin: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   twitter: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   facebook: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
@@ -147,7 +147,7 @@ export default function Profile() {
   );
 
   // Handle avatar upload
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -162,24 +162,63 @@ export default function Profile() {
       return;
     }
 
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result as string;
-      setAvatarPreview(base64);
+    // Show local preview immediately for better UX
+    const localPreview = URL.createObjectURL(file);
+    setAvatarPreview(localPreview);
 
-      // Save avatar
-      const result = await updateUserProfile({ avatar: base64 });
+    try {
+      // Step 1: Upload to /api/upload first to get a proper URL
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const uploadResult = await uploadResponse.json();
+      
+      if (!uploadResponse.ok || !uploadResult.success) {
+        // Extract error message safely
+        const uploadError = typeof uploadResult.error === 'string' 
+          ? uploadResult.error 
+          : (uploadResult.error?.message || 'Failed to upload image');
+        toast.error('Upload failed', { description: uploadError });
+        // Revert preview on upload failure
+        setAvatarPreview(user?.avatar || null);
+        URL.revokeObjectURL(localPreview);
+        return;
+      }
+      
+      const avatarUrl = uploadResult.data.url;
+      
+      // Step 2: Update profile with the uploaded URL
+      const result = await updateUserProfile({ avatar: avatarUrl });
       if (result.success) {
         toast.success('Avatar updated', { description: 'Your profile picture has been updated.' });
+        // Update preview with server URL
+        setAvatarPreview(avatarUrl);
       } else {
-        toast.error('Failed to update avatar', { description: result.error || 'Please try again.' });
+        // Safely extract error message - handle both string and object errors
+        const errorMsg = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Please try again.');
+        toast.error('Failed to update avatar', { description: errorMsg });
+        // Revert preview on profile update failure
+        setAvatarPreview(user?.avatar || null);
       }
-    };
-    reader.onerror = () => {
-      toast.error('Failed to read file', { description: 'Please try again with a different image.' });
-    };
-    reader.readAsDataURL(file);
+      
+      // Clean up the local preview URL
+      URL.revokeObjectURL(localPreview);
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast.error('Upload failed', { 
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.' 
+      });
+      // Revert preview on error
+      setAvatarPreview(user?.avatar || null);
+      URL.revokeObjectURL(localPreview);
+    }
   };
 
   const onProfileSubmit = async (data: ProfileFormData) => {
@@ -210,8 +249,12 @@ export default function Profile() {
           description: 'Your profile has been updated successfully.',
         });
       } else {
+        // Safely extract error message - handle both string and object errors
+        const errorMsg = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to update profile.');
         toast.error('Update failed', {
-          description: result.error || 'Failed to update profile.',
+          description: errorMsg,
         });
       }
     } catch (error) {
@@ -244,8 +287,12 @@ export default function Profile() {
         });
         passwordForm.reset();
       } else {
+        // Safely extract error message - handle both string and object errors
+        const errorMsg = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to change password.');
         toast.error('Password change failed', {
-          description: result.error || 'Failed to change password.',
+          description: errorMsg,
         });
       }
     } catch (error) {
@@ -267,8 +314,12 @@ export default function Profile() {
           description: 'Your listing has been deleted successfully.',
         });
       } else {
+        // Safely extract error message - handle both string and object errors
+        const errorMsg = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to delete listing.');
         toast.error('Delete failed', {
-          description: result.error || 'Failed to delete listing.',
+          description: errorMsg,
         });
       }
     }
@@ -303,8 +354,12 @@ export default function Profile() {
         setTwoFASecret(null);
         setVerificationCode('');
       } else {
+        // Safely extract error message - handle both string and object errors
+        const errorMsg = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Invalid verification code.');
         toast.error('Verification failed', {
-          description: result.error || 'Invalid verification code.',
+          description: errorMsg,
         });
       }
     } catch (error) {
@@ -358,8 +413,12 @@ export default function Profile() {
           description: 'Your personal data has been downloaded as a JSON file.',
         });
       } else {
+        // Safely extract error message - handle both string and object errors
+        const errorMsg = typeof result.error === 'string' 
+          ? result.error 
+          : (result.error?.message || 'Failed to export data.');
         toast.error('Export failed', {
-          description: result.error || 'Failed to export data.',
+          description: errorMsg,
         });
       }
     } catch (error) {
@@ -1155,7 +1214,11 @@ export default function Profile() {
                           if (result.success) {
                             toast.success('All other sessions revoked');
                           } else {
-                            toast.error(result.error || 'Failed to revoke sessions');
+                            // Safely extract error message - handle both string and object errors
+                            const errorMsg = typeof result.error === 'string' 
+                              ? result.error 
+                              : (result.error?.message || 'Failed to revoke sessions');
+                            toast.error(errorMsg);
                           }
                         }}
                         variant="outline"
