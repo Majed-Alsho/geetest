@@ -344,10 +344,10 @@ export default function CreateListing() {
                     Upload up to 10 images of your business. The first image will be used as the primary image.
                   </p>
                   <ImageUploader
-                    value={images}
+                    images={images}
                     onChange={setImages}
                     maxImages={10}
-                    maxSizeMB={5}
+                    maxSizePerImage={5 * 1024 * 1024}
                   />
                 </GlassPanel>
 
@@ -498,8 +498,11 @@ export default function CreateListing() {
                             <Input 
                               type="number" 
                               placeholder="e.g., 5000000"
-                              {...field}
-                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                              value={field.value === 0 ? '' : field.value}
+                              onChange={e => {
+                                const val = e.target.value;
+                                field.onChange(val === '' ? 0 : parseFloat(val));
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
@@ -517,8 +520,11 @@ export default function CreateListing() {
                             <Input 
                               type="number" 
                               placeholder="e.g., 15000000"
-                              {...field}
-                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                              value={field.value === 0 ? '' : field.value}
+                              onChange={e => {
+                                const val = e.target.value;
+                                field.onChange(val === '' ? 0 : parseFloat(val));
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
@@ -536,8 +542,11 @@ export default function CreateListing() {
                             <Input 
                               type="number" 
                               placeholder="e.g., 25"
-                              {...field}
-                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                              value={field.value === 0 ? '' : field.value}
+                              onChange={e => {
+                                const val = e.target.value;
+                                field.onChange(val === '' ? 0 : parseFloat(val));
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
@@ -555,8 +564,11 @@ export default function CreateListing() {
                             <Input 
                               type="number" 
                               placeholder="e.g., 20"
-                              {...field}
-                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                              value={field.value === 0 ? '' : field.value}
+                              onChange={e => {
+                                const val = e.target.value;
+                                field.onChange(val === '' ? 0 : parseFloat(val));
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
@@ -582,8 +594,11 @@ export default function CreateListing() {
                           <Input 
                             type="number" 
                             placeholder="e.g., 25"
-                            {...field}
-                            onChange={e => field.onChange(parseInt(e.target.value) || 1)}
+                            value={field.value === 0 ? '' : field.value}
+                            onChange={e => {
+                              const val = e.target.value;
+                              field.onChange(val === '' ? 0 : parseInt(val));
+                            }}
                           />
                         </FormControl>
                         <FormMessage />

@@ -216,7 +216,7 @@ export default function Profile() {
       }
     } catch (error) {
       toast.error('Update failed', {
-        description: 'An unexpected error occurred.',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {
       setIsUpdating(false);
@@ -250,7 +250,7 @@ export default function Profile() {
       }
     } catch (error) {
       toast.error('Password change failed', {
-        description: 'An unexpected error occurred.',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {
       setIsChangingPassword(false);
@@ -308,7 +308,9 @@ export default function Profile() {
         });
       }
     } catch (error) {
-      toast.error('Failed to enable 2FA');
+      toast.error('Failed to enable 2FA', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      });
     } finally {
       setIs2FALoading(false);
     }
@@ -328,7 +330,9 @@ export default function Profile() {
         toast.error('Failed to disable 2FA');
       }
     } catch (error) {
-      toast.error('Failed to disable 2FA');
+      toast.error('Failed to disable 2FA', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      });
     } finally {
       setIs2FALoading(false);
     }
@@ -360,7 +364,7 @@ export default function Profile() {
       }
     } catch (error) {
       toast.error('Export failed', {
-        description: 'An unexpected error occurred.',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {
       setIsExporting(false);
